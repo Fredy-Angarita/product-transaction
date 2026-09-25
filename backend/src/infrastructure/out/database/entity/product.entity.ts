@@ -1,15 +1,22 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { OrderItemEntity } from './order.item.entity';
 
 @Entity('product')
 export class ProductEntity {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  declare id: string;
   @Column({ type: 'varchar', length: 150 })
-  name: string;
+  declare name: string;
   @Column({ type: 'text' })
-  image: string;
-  @Column({ type: 'numeric', precision: 12, scale: 2 })
-  price: number;
+  declare image: string;
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+  })
+  declare price: number;
   @Column({ type: 'int' })
-  quantity: number;
+  declare quantity: number;
+  @OneToMany(() => OrderItemEntity, (item) => item.product)
+  declare orderItems: OrderItemEntity[];
 }
