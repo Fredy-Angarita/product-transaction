@@ -1,6 +1,12 @@
 import 'dotenv/config';
 import path from 'path';
 import { DataSource, DataSourceOptions } from 'typeorm';
+import { ProductEntity } from '../entity/product.entity';
+import { TransactionStatusEntity } from '../entity/transaction.status.entity';
+import { DeliveryEntity } from '../entity/delivery.entity';
+import { OrderItemEntity } from '../entity/order.item.entity';
+import { TransactionEntity } from '../entity/transaction.entity';
+import { CustomerEntity } from '../entity/customer.entity';
 
 export const DataSourceConfig: DataSourceOptions = {
   type: 'postgres',
@@ -11,7 +17,14 @@ export const DataSourceConfig: DataSourceOptions = {
   database: process.env.DB_NAME,
   synchronize: false,
   logging: false,
-  entities: [],
+  entities: [
+    ProductEntity,
+    TransactionStatusEntity,
+    DeliveryEntity,
+    OrderItemEntity,
+    TransactionEntity,
+    CustomerEntity,
+  ],
   migrations: [path.join(__dirname, '../migrations/*.{js,ts}')],
 };
 
