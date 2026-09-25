@@ -28,8 +28,8 @@ export class FakerProductFactory implements IProductSeedFactory {
         name: `${variant} ${template.name}`,
         image: template.image,
         price: faker.number.float({
-          min: 10,
-          max: 500,
+          min: 5000,
+          max: 100000,
           fractionDigits: 2,
         }),
         quantity: faker.number.int({ min: 1, max: 100 }),

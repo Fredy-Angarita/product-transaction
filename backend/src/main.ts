@@ -24,6 +24,7 @@ async function bootstrap() {
     .addTag('order-items')
     .addTag('transactions')
     .addTag('transaction-statuses')
+    .addTag('wompi')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });

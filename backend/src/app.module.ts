@@ -8,6 +8,7 @@ import { OrderItemHandler } from '../application/handlers/order-item.handler';
 import { ProductHandler } from '../application/handlers/product.handler';
 import { TransactionHandler } from '../application/handlers/transaction.handler';
 import { TransactionStatusHandler } from '../application/handlers/transaction-status.handler';
+import { WompiHandler } from '../application/handlers/wompi.handler';
 import { CUSTOMER_API } from '../domain/api/customer.interface';
 import type { ICustomerApi } from '../domain/api/customer.interface';
 import { DELIVERY_API } from '../domain/api/delivery.interface';
@@ -26,6 +27,9 @@ import { OrderItemUseCase } from '../domain/api/usecase/order-item.usecase';
 import { ProductUseCase } from '../domain/api/usecase/product.usecase';
 import { TransactionUseCase } from '../domain/api/usecase/transaction.usecase';
 import { TransactionStatusUseCase } from '../domain/api/usecase/transaction-status.usecase';
+import { WompiUseCase } from '../domain/api/usecase/wompi.usecase';
+import { WOMPI_API } from '../domain/api/wompi.interface';
+import type { IWompiApi } from '../domain/api/wompi.interface';
 import { CUSTOMER_PERSISTENCE_PORT } from '../domain/spi/customer.persistence.port';
 import type { ICustomerPersistencePort } from '../domain/spi/customer.persistence.port';
 import { DELIVERY_PERSISTENCE_PORT } from '../domain/spi/delivery.persistence.port';
@@ -38,6 +42,8 @@ import { TRANSACTION_PERSISTENCE_PORT } from '../domain/spi/transaction.persiste
 import type { ITransactionPersistencePort } from '../domain/spi/transaction.persistence.port';
 import { TRANSACTION_STATUS_PERSISTENCE_PORT } from '../domain/spi/transaction-status.persistence.port';
 import type { ITransactionStatusPersistencePort } from '../domain/spi/transaction-status.persistence.port';
+import { WOMPI_PAYMENT_PORT } from '../domain/spi/wompi.payment.port';
+import type { IWompiPaymentPort } from '../domain/spi/wompi.payment.port';
 import { PRODUCT_SEED_FACTORY } from '../domain/spi/product.seed-factory.port';
 import type { IProductSeedFactory } from '../domain/spi/product.seed-factory.port';
 import { CustomerController } from './infrastructure/in/controller/customer.controller';
@@ -47,7 +53,9 @@ import { OrderItemController } from './infrastructure/in/controller/order-item.c
 import { ProductController } from './infrastructure/in/controller/product.controller';
 import { TransactionController } from './infrastructure/in/controller/transaction.controller';
 import { TransactionStatusController } from './infrastructure/in/controller/transaction-status.controller';
+import { WompiController } from './infrastructure/in/controller/wompi.controller';
 import { DatabaseModule } from './infrastructure/out/database/database.module';
+import { WompiModule } from './infrastructure/out/external/wompi/wompi.module';
 import { FakerProductFactory } from './infrastructure/out/faker/faker-product.factory';
 
 const createProductApi = (
@@ -91,8 +99,15 @@ const createTransactionStatusApi = (
   statusPersistence: ITransactionStatusPersistencePort,
 ): ITransactionStatusApi => new TransactionStatusUseCase(statusPersistence);
 
+const createWompiApi = (wompiPayment: IWompiPaymentPort): IWompiApi =>
+  new WompiUseCase(wompiPayment);
+
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] }),
+    DatabaseModule,
+    WompiModule,
+  ],
   controllers: [
     ProductController,
     CustomerController,
@@ -100,6 +115,7 @@ const createTransactionStatusApi = (
     OrderItemController,
     TransactionController,
     TransactionStatusController,
+    WompiController,
   ],
   providers: [
     FakerProductFactory,
@@ -109,6 +125,7 @@ const createTransactionStatusApi = (
     OrderItemHandler,
     TransactionHandler,
     TransactionStatusHandler,
+    WompiHandler,
     {
       provide: PRODUCT_SEED_FACTORY,
       useExisting: FakerProductFactory,
@@ -150,6 +167,11 @@ const createTransactionStatusApi = (
       provide: TRANSACTION_STATUS_API,
       useFactory: createTransactionStatusApi,
       inject: [TRANSACTION_STATUS_PERSISTENCE_PORT],
+    },
+    {
+      provide: WOMPI_API,
+      useFactory: createWompiApi,
+      inject: [WOMPI_PAYMENT_PORT],
     },
     {
       provide: APP_FILTER,

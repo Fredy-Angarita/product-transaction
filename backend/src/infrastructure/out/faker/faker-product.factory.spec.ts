@@ -13,8 +13,8 @@ describe('FakerProductFactory', () => {
       expect(product.name.length).toBeGreaterThan(0);
       expect(product.name.length).toBeLessThanOrEqual(150);
       expect(product.image).toEqual(expect.any(String));
-      expect(product.price).toBeGreaterThanOrEqual(10);
-      expect(product.price).toBeLessThanOrEqual(500);
+      expect(product.price).toBeGreaterThanOrEqual(5000);
+      expect(product.price).toBeLessThanOrEqual(100000);
       expect(product.quantity).toBeGreaterThanOrEqual(1);
       expect(product.quantity).toBeLessThanOrEqual(100);
       expect(

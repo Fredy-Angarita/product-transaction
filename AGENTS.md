@@ -12,19 +12,29 @@
 - Use Node `^22.18.0` or `>=24.12.0` (the frontend engine constraint; the locked TypeORM version also requires a recent Node 22 or 24). Both projects use npm and checked-in `package-lock.json` files.
 - Backend environment: copy `backend/.env.example` to `backend/.env` and fill `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`, and `CONTAINER_NAME`. `.env` is ignored. `data.source.ts` also reads `DB_HOST`, but the example omits it; set it explicitly (normally `localhost` when Nest runs on the host). `PORT` is the Nest port and defaults to `3000`.
 - `backend/docker-compose.yml` provides only PostgreSQL 17, not the apps. From `backend/`, start it with `docker compose up -d postgres`; it uses the named volume `postgres_data`.
-- TypeORM has `synchronize: false`; entity changes require migrations. Run `npm run migration:run` or `npm run migration:revert`, and generate with `NAME=AddSomething npm run migration:generate` from `backend/`. All of these require the configured database to be reachable.
+- TypeORM has `synchronize: false`; entity changes require migrations. Run `npm run migration:run` or `npm run migration:revert`, and generate with `NAME=AddSomething npm run migration:generate` from `backend/`. All of these require the configured database to be reachable and explicit user authorization, because they load `backend/.env` and connect to PostgreSQL.
+
+## Secrets and environment files
+
+- Never read, print, source, or otherwise load `backend/.env` or any other secret-bearing file unless the user explicitly authorizes it in the current conversation.
+- Never pass database credentials to shell commands, Docker, tests, or other tools, and never print environment variables that may contain secrets.
+- Do not connect to PostgreSQL, run `docker compose`, or perform manual integration checks without explicit authorization.
+- `npm run start:dev`, `npm run start:prod`, and every TypeORM CLI command (`migration:run`, `migration:revert`, `migration:generate`, `migration:show`, `typeorm`) load `backend/.env`; run them only with explicit authorization.
+- Reference configuration by variable name, such as `DB_HOST` or `DB_PORT`, and use `backend/.env.example` when documenting setup.
+- Never include secret values in code, tests, logs, responses, generated files, or summaries.
+- The only file the agent is allowed to read for environment information is `.env.agents`, and only for the purpose the user defines there. The user will create this file when they want the agent to use database information. No other file or resource is accessible to the agent in this project.
 
 ## Backend workflow
 
 ```text
 cd backend
 npm ci
-npm run start:dev       # watch mode
+npm run start:dev       # watch mode; requires authorization (loads .env)
 npm run build           # Nest compile/type check
 npx tsc --noEmit        # explicit TypeScript diagnostics
 npm test -- --runInBand # unit tests
 npm run test:cov        # unit tests with coverage
-npm run migration:run
+npm run migration:run   # requires authorization (loads .env and connects to PostgreSQL)
 ```
 
 - The production build is emitted under `dist/src`; `npm run start:prod` runs `dist/src/main.js`.
