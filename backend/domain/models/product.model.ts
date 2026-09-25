@@ -5,3 +5,5 @@ export interface Product {
   price: number;
   quantity: number;
 }
+
+export type CreateProductInput = Omit<Product, 'id'>;

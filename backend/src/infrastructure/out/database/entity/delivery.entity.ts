@@ -21,11 +21,15 @@ export class DeliveryEntity {
   declare subLocality: string;
   @Column()
   declare address: string;
-  @Column({ type: 'varchar', length: 50 })
-  declare postal_code: string;
+  @Column({ name: 'postal_code', type: 'varchar', length: 50 })
+  declare postalCode: string;
   @Column({ type: 'text' })
   declare additionalInfo: string;
-  @OneToOne(() => TransactionEntity, (transaction) => transaction.delivery)
+  @Column({ name: 'transaction_id', type: 'uuid', nullable: true })
+  declare transactionId: string | null;
+  @OneToOne(() => TransactionEntity, (transaction) => transaction.delivery, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'transaction_id' })
-  declare transaction: TransactionEntity;
+  declare transaction: TransactionEntity | null;
 }

@@ -26,7 +26,7 @@ export class OrderItemEntity {
     nullable: false,
   })
   @JoinColumn({ name: 'product_id' })
-  declare product: ProductEntity;
+  declare product: ProductEntity | null;
   @Column({
     type: 'numeric',
     precision: 12,

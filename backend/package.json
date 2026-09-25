@@ -7,12 +7,12 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"application/**/*.ts\" \"domain/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"application/**/*.ts\" \"domain/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main.js",
-    "lint": "eslint \"src/**/*.ts\" \"application/**/*.ts\" \"domain/**/*.ts\" \"{apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"src/**/*.ts\" \"application/**/*.ts\" \"domain/**/*.ts\" --fix",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d src/infrastructure/out/database/config/data.source.ts",
     "migration:generate": "npm run typeorm -- migration:generate src/infrastructure/out/database/migrations/$NAME",
     "migration:run": "npm run typeorm -- migration:run",
@@ -20,8 +20,7 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --runInBand",
-    "test:debug": "NODE_OPTIONS=--experimental-vm-modules node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json"
+    "test:debug": "NODE_OPTIONS=--experimental-vm-modules node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
   },
   "dependencies": {
     "@faker-js/faker": "^10.6.0",
@@ -85,8 +84,9 @@
       "application/handlers/**/*.ts",
       "domain/api/**/*.ts",
       "src/infrastructure/in/controller/**/*.ts",
-      "src/infrastructure/out/database/repository/product.repository.ts",
-      "src/infrastructure/out/database/mappers/product.mapper.ts",
+      "src/infrastructure/in/filters/**/*.ts",
+      "src/infrastructure/out/database/repository/**/*.ts",
+      "src/infrastructure/out/database/mappers/**/*.ts",
       "src/infrastructure/out/faker/**/*.ts",
       "!**/*.spec.ts"
     ],

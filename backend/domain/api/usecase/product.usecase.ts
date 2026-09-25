@@ -1,4 +1,4 @@
-import type { Product } from '../../models/product.model';
+import type { CreateProductInput, Product } from '../../models/product.model';
 import type { IProductPersistencePort } from '../../spi/product.persistence.port';
 import type { IProductSeedFactory } from '../../spi/product.seed-factory.port';
 import type { IProductApi } from '../product.interface';
@@ -11,6 +11,10 @@ export class ProductUseCase implements IProductApi {
 
   getProducts(): Promise<Product[]> {
     return this.productPersistence.getAll();
+  }
+
+  createProduct(input: CreateProductInput): Promise<Product> {
+    return this.productPersistence.create(input);
   }
 
   async seedProducts(count: number): Promise<number> {

@@ -26,14 +26,17 @@ const entity = {
 
 describe('ProductRepository', () => {
   let find: jest.Mock;
+  let findOne: jest.Mock;
   let save: jest.Mock;
   let repository: ProductRepository;
 
   beforeEach(() => {
     find = jest.fn();
+    findOne = jest.fn();
     save = jest.fn();
     const typeOrmRepository = {
       find,
+      findOne,
       save,
     } as unknown as Repository<ProductEntity>;
     repository = new ProductRepository(typeOrmRepository);
@@ -57,6 +60,40 @@ describe('ProductRepository', () => {
     find.mockRejectedValue(error);
 
     await expect(repository.getAll()).rejects.toBe(error);
+  });
+
+  it('returns a product by id', async () => {
+    findOne.mockResolvedValue(entity);
+
+    await expect(repository.getById(product.id)).resolves.toEqual(product);
+    expect(findOne).toHaveBeenCalledWith({ where: { id: product.id } });
+  });
+
+  it('returns null when a product does not exist', async () => {
+    findOne.mockResolvedValue(null);
+
+    await expect(repository.getById('missing')).resolves.toBeNull();
+  });
+
+  it('creates a product and returns the persisted result', async () => {
+    save.mockResolvedValue(entity);
+
+    await expect(
+      repository.create({
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        quantity: product.quantity,
+      }),
+    ).resolves.toEqual(product);
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: product.name,
+        image: product.image,
+        price: product.price,
+        quantity: product.quantity,
+      }),
+    );
   });
 
   it('maps and saves products', async () => {
