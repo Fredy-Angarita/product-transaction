@@ -106,6 +106,13 @@ describe('entity handlers', () => {
           additionalInfo: 'Apartamento 401',
         },
         items: [{ productId: 'product-id', quantity: 2 }],
+        card: {
+          number: '4242424242424242',
+          cvc: '123',
+          exp_month: '08',
+          exp_year: '28',
+          card_holder: 'Test User',
+        },
       }),
     ).resolves.toEqual(transaction);
   });

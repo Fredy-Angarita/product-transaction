@@ -1,9 +1,9 @@
-import type { WompiRawResponse } from '../raw/acceptableTerms.raw';
+import type { AcceptableTermsRawResponse } from '../raw/acceptable-terms.raw';
 import { WompiMapper } from './wompi.mapper';
 
 describe('WompiMapper', () => {
   it('maps both agreements from the raw response', () => {
-    const raw: WompiRawResponse = {
+    const raw: AcceptableTermsRawResponse = {
       data: {
         presigned_acceptance: {
           acceptance_token: 'acceptance-token',
@@ -44,7 +44,7 @@ describe('WompiMapper', () => {
   });
 
   it('keeps the agreement that is present and empties the missing one', () => {
-    const raw: WompiRawResponse = {
+    const raw: AcceptableTermsRawResponse = {
       data: {
         presigned_acceptance: { acceptance_token: 'only-one' },
       },

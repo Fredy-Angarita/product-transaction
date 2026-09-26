@@ -2,7 +2,7 @@ jest.mock('@nestjs/typeorm', () => ({
   InjectRepository: () => () => undefined,
 }));
 
-import type { Repository } from 'typeorm';
+import { In, type Repository } from 'typeorm';
 
 import type { Product } from '../../../../../domain/models/product.model';
 import { ProductEntity } from '../entity/product.entity';
@@ -73,6 +73,26 @@ describe('ProductRepository', () => {
     findOne.mockResolvedValue(null);
 
     await expect(repository.getById('missing')).resolves.toBeNull();
+  });
+
+  it('returns multiple products by ids in a single query', async () => {
+    find.mockResolvedValue([entity]);
+
+    await expect(
+      repository.getByIds(['product-id', 'another-id']),
+    ).resolves.toEqual([product]);
+    expect(find).toHaveBeenCalledWith({
+      where: { id: In(['product-id', 'another-id']) },
+    });
+  });
+
+  it('returns an empty list when no ids match', async () => {
+    find.mockResolvedValue([]);
+
+    await expect(repository.getByIds(['missing'])).resolves.toEqual([]);
+    expect(find).toHaveBeenCalledWith({
+      where: { id: In(['missing']) },
+    });
   });
 
   it('creates a product and returns the persisted result', async () => {

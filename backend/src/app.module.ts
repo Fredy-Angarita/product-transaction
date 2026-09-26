@@ -88,11 +88,13 @@ const createTransactionApi = (
   transactionPersistence: ITransactionPersistencePort,
   productPersistence: IProductPersistencePort,
   statusPersistence: ITransactionStatusPersistencePort,
+  wompiPayment: IWompiPaymentPort,
 ): ITransactionApi =>
   new TransactionUseCase(
     transactionPersistence,
     productPersistence,
     statusPersistence,
+    wompiPayment,
   );
 
 const createTransactionStatusApi = (
@@ -161,6 +163,7 @@ const createWompiApi = (wompiPayment: IWompiPaymentPort): IWompiApi =>
         TRANSACTION_PERSISTENCE_PORT,
         PRODUCT_PERSISTENCE_PORT,
         TRANSACTION_STATUS_PERSISTENCE_PORT,
+        WOMPI_PAYMENT_PORT,
       ],
     },
     {

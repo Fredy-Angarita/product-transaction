@@ -4,7 +4,7 @@ export interface WompiRawAgreement {
   type?: string;
 }
 
-export interface WompiRawResponse {
+export interface AcceptableTermsRawResponse {
   data?: {
     presigned_acceptance?: WompiRawAgreement;
     presigned_personal_data_auth?: WompiRawAgreement;

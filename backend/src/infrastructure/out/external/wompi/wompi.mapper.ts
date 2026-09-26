@@ -4,8 +4,8 @@ import type {
 } from '../../../../../domain/models/wompi-acceptable-terms.model';
 import type {
   WompiRawAgreement,
-  WompiRawResponse,
-} from '../raw/acceptableTerms.raw';
+  AcceptableTermsRawResponse,
+} from '../raw/acceptable-terms.raw';
 
 const toDomain = (raw?: WompiRawAgreement): WompiAgreement => ({
   acceptanceToken: raw?.acceptance_token ?? '',
@@ -14,7 +14,7 @@ const toDomain = (raw?: WompiRawAgreement): WompiAgreement => ({
 });
 
 export class WompiMapper {
-  static toDomain(raw: WompiRawResponse): WompiAcceptableTerms {
+  static toDomain(raw: AcceptableTermsRawResponse): WompiAcceptableTerms {
     return {
       presignedAcceptance: toDomain(raw.data?.presigned_acceptance),
       presignedPersonalDataAuth: toDomain(

@@ -3,6 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { CreateCustomerDto } from './customer.dto';
 import {
   CreateTransactionDto,
+  TransactionCardDto,
   TransactionDeliveryDto,
   TransactionItemDto,
 } from './transaction.dto';
@@ -28,10 +29,18 @@ describe('CreateTransactionDto', () => {
         additionalInfo: 'Apartamento 401',
       },
       items: [{ productId: 'product-id', quantity: 2 }],
+      card: {
+        number: '4242424242424242',
+        cvc: '123',
+        exp_month: '08',
+        exp_year: '28',
+        card_holder: 'José Pérez',
+      },
     });
 
     expect(dto.customer).toBeInstanceOf(CreateCustomerDto);
     expect(dto.delivery).toBeInstanceOf(TransactionDeliveryDto);
     expect(dto.items[0]).toBeInstanceOf(TransactionItemDto);
+    expect(dto.card).toBeInstanceOf(TransactionCardDto);
   });
 });

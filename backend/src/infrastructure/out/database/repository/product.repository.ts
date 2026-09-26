@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import type {
   CreateProductInput,
@@ -25,6 +25,13 @@ export class ProductRepository implements IProductPersistencePort {
   async getById(id: string): Promise<Product | null> {
     const entity = await this.productRepository.findOne({ where: { id } });
     return entity ? ProductMapper.toDomain(entity) : null;
+  }
+
+  async getByIds(ids: string[]): Promise<Product[]> {
+    const entities = await this.productRepository.find({
+      where: { id: In(ids) },
+    });
+    return entities.map((entity) => ProductMapper.toDomain(entity));
   }
 
   async create(input: CreateProductInput): Promise<Product> {

@@ -1,3 +1,4 @@
+import type { CardModel } from './card.model';
 import type { CreateCustomerInput, Customer } from './customer.model';
 import type { Delivery, DeliveryData } from './delivery.model';
 import type { OrderItem, TransactionItemInput } from './order-item.model';
@@ -23,6 +24,7 @@ export interface CreateTransactionInput {
   customer: CreateCustomerInput;
   delivery: DeliveryData;
   items: TransactionItemInput[];
+  card: CardModel;
 }
 
 export interface CreateTransactionPersistenceInput {
