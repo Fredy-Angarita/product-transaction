@@ -4,9 +4,9 @@ jest.mock('@nestjs/typeorm', () => ({
 
 import { In, type Repository } from 'typeorm';
 
-import type { Product } from '../../../../../domain/models/product.model';
-import { ProductEntity } from '../entity/product.entity';
-import { ProductRepository } from './product.repository';
+import type { Product } from '../../../../../../domain/models/product.model';
+import { ProductEntity } from '../../entity/product.entity';
+import { ProductRepository } from '../product.repository';
 
 const product: Product = {
   id: 'product-id',
@@ -93,27 +93,6 @@ describe('ProductRepository', () => {
     expect(find).toHaveBeenCalledWith({
       where: { id: In(['missing']) },
     });
-  });
-
-  it('creates a product and returns the persisted result', async () => {
-    save.mockResolvedValue(entity);
-
-    await expect(
-      repository.create({
-        name: product.name,
-        image: product.image,
-        price: product.price,
-        quantity: product.quantity,
-      }),
-    ).resolves.toEqual(product);
-    expect(save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: product.name,
-        image: product.image,
-        price: product.price,
-        quantity: product.quantity,
-      }),
-    );
   });
 
   it('maps and saves products', async () => {

@@ -1,6 +1,6 @@
-import type { Product } from '../../../../../domain/models/product.model';
-import { ProductEntity } from '../entity/product.entity';
-import { ProductMapper } from './product.mapper';
+import type { Product } from '../../../../../../domain/models/product.model';
+import { ProductEntity } from '../../entity/product.entity';
+import { ProductMapper } from '../product.mapper';
 
 describe('ProductMapper', () => {
   it('maps a product entity to the domain model', () => {

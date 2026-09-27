@@ -7,7 +7,7 @@ describe('ProductResponseDto', () => {
       id: 'product-id',
       name: 'Product',
       image: 'https://example.com/product.png',
-      price: 19.99,
+      price: 19999,
       quantity: 4,
     };
 

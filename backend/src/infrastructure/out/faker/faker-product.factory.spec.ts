@@ -28,4 +28,13 @@ describe('FakerProductFactory', () => {
   it('returns an empty list when no products are requested', async () => {
     await expect(factory.create(0)).resolves.toEqual([]);
   });
+
+  it('never generates a price with centavos', async () => {
+    const products = await factory.create(50);
+
+    products.forEach((product) => {
+      expect(Number.isInteger(product.price)).toBe(true);
+      expect(product.price % 1).toBe(0);
+    });
+  });
 });

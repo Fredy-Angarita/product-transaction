@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
-import type {
-  CreateProductInput,
-  Product,
-} from '../../../../../domain/models/product.model';
+import type { Product } from '../../../../../domain/models/product.model';
 import type { IProductPersistencePort } from '../../../../../domain/spi/product.persistence.port';
 import { ProductEntity } from '../entity/product.entity';
 import { ProductMapper } from '../mappers/product.mapper';
@@ -32,12 +29,6 @@ export class ProductRepository implements IProductPersistencePort {
       where: { id: In(ids) },
     });
     return entities.map((entity) => ProductMapper.toDomain(entity));
-  }
-
-  async create(input: CreateProductInput): Promise<Product> {
-    const entity = ProductMapper.toEntity(input);
-    const saved = await this.productRepository.save(entity);
-    return ProductMapper.toDomain(saved);
   }
 
   async saveAll(products: Product[]): Promise<void> {

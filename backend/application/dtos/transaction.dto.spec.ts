@@ -11,8 +11,6 @@ import {
 describe('CreateTransactionDto', () => {
   it('transforms nested transaction input into validated DTO instances', () => {
     const dto = plainToInstance(CreateTransactionDto, {
-      paymentReference: 'PAY-1',
-      statusId: 1,
       customer: {
         name: 'Ana',
         lastName: 'Gómez',

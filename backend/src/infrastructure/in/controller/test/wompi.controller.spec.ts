@@ -1,6 +1,6 @@
-import type { WompiAcceptableTerms } from '../../../../domain/models/wompi.model';
-import { WompiHandler } from '../../../../application/handlers/wompi.handler';
-import { WompiController } from './wompi.controller';
+import type { WompiAcceptableTerms } from '../../../../../domain/models/wompi.model';
+import { WompiHandler } from '../../../../../application/handlers/wompi.handler';
+import { WompiController } from '../wompi.controller';
 
 const terms: WompiAcceptableTerms = {
   presignedAcceptance: {

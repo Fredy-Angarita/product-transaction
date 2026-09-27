@@ -27,11 +27,7 @@ export class FakerProductFactory implements IProductSeedFactory {
         id: faker.string.uuid(),
         name: `${variant} ${template.name}`,
         image: template.image,
-        price: faker.number.float({
-          min: 5000,
-          max: 100000,
-          fractionDigits: 2,
-        }),
+        price: faker.number.int({ min: 5000, max: 100000 }),
         quantity: faker.number.int({ min: 1, max: 100 }),
       };
     });

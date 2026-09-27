@@ -1,7 +1,7 @@
-import type { CreateProductInput, Product } from '../../models/product.model';
-import type { IProductPersistencePort } from '../../spi/product.persistence.port';
-import type { IProductSeedFactory } from '../../spi/product.seed-factory.port';
-import { ProductUseCase } from './product.usecase';
+import type { Product } from '../../../models/product.model';
+import type { IProductPersistencePort } from '../../../spi/product.persistence.port';
+import type { IProductSeedFactory } from '../../../spi/product.seed-factory.port';
+import { ProductUseCase } from '../product.usecase';
 
 const products: Product[] = [
   {
@@ -22,8 +22,9 @@ const createPersistence = (
 ): jest.Mocked<IProductPersistencePort> => ({
   getAll: jest.fn().mockResolvedValue([]),
   getById: jest.fn().mockResolvedValue(products[0]),
-  create: jest.fn().mockResolvedValue(products[0]),
+  getByIds: jest.fn().mockResolvedValue(products),
   saveAll: jest.fn().mockResolvedValue(undefined),
+  updateStock: jest.fn().mockResolvedValue(undefined),
   ...overrides,
 });
 
@@ -58,26 +59,6 @@ describe('ProductUseCase', () => {
     );
 
     await expect(useCase.getProducts()).rejects.toBe(error);
-  });
-
-  it('creates a product through the persistence port', async () => {
-    const input: CreateProductInput = {
-      name: 'New product',
-      image: 'https://example.com/new-product.png',
-      price: 25,
-      quantity: 3,
-    };
-    const create = jest.fn().mockResolvedValue({ id: 'new-id', ...input });
-    const useCase = new ProductUseCase(
-      createPersistence({ create }),
-      createSeedFactory(),
-    );
-
-    await expect(useCase.createProduct(input)).resolves.toEqual({
-      id: 'new-id',
-      ...input,
-    });
-    expect(create).toHaveBeenCalledWith(input);
   });
 
   it('does not seed products when products already exist', async () => {
