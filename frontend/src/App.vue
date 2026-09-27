@@ -1,47 +1,50 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import { onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+
+import ProductCard from './features/products/components/product.card.vue'
+import { useProductsStore } from './stores/products.store'
+
+const store = useProductsStore()
+const { products, loading, error } = storeToRefs(store)
+
+onMounted(() => {
+  void store.loadProducts()
+})
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+  <main class="catalog">
+    <p v-if="loading" class="catalog-status">Cargando productos…</p>
+    <p v-else-if="error" class="catalog-status catalog-status--error">{{ error }}</p>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
-
-  <main>
-    <TheWelcome />
+    <section v-else class="product-grid">
+      <ProductCard v-for="product in products" :key="product.id" :card="product" />
+    </section>
   </main>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
+<style lang="scss" scoped>
+.catalog {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 2rem);
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
+.catalog-status {
+  margin: 0;
+  color: var(--color-text);
+  text-align: center;
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.catalog-status--error {
+  color: #dc2626;
 }
 </style>
