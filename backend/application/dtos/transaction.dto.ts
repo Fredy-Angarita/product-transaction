@@ -20,7 +20,6 @@ import type { Transaction } from '../../domain/models/transaction.model';
 import { CreateCustomerDto, CustomerResponseDto } from './customer.dto';
 import { CreateDeliveryDto, DeliveryResponseDto } from './delivery.dto';
 import { OrderItemResponseDto } from './order-item.dto';
-import { TransactionStatusResponseDto } from './transaction-status.dto';
 
 export class TransactionCardDto implements CardModel {
   @ApiProperty({ example: '4242424242424242' })
@@ -86,9 +85,6 @@ export class CreateTransactionDto {
   @IsNotEmpty()
   @MaxLength(500)
   acceptPersonalAuth!: string;
-
-  @ApiProperty({ example: 1, minimum: 1 })
-  statusId?: number;
 
   @ApiProperty({ type: CreateCustomerDto })
   @ValidateNested()

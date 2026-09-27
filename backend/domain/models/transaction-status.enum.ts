@@ -5,3 +5,9 @@ export enum TransactionStatusEnum {
   VOIDED = 'VOIDED',
   ERROR = 'ERROR',
 }
+export const WOMPI_STATUS_MAP: Record<string, TransactionStatusEnum> = {
+  APPROVED: TransactionStatusEnum.APPROVED,
+  DECLINED: TransactionStatusEnum.DECLINED,
+  VOIDED: TransactionStatusEnum.VOIDED,
+  ERROR: TransactionStatusEnum.ERROR,
+};

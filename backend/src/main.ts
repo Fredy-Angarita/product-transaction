@@ -1,10 +1,27 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ProductHandler } from '../application/handlers/product.handler';
 import { AppModule } from './app.module';
+
+const SEED_PRODUCT_COUNT = 30;
+const bootstrapLogger = new Logger('Bootstrap');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  try {
+    const inserted = await app
+      .get(ProductHandler)
+      .seedProducts(SEED_PRODUCT_COUNT);
+    if (inserted > 0) {
+      bootstrapLogger.log(`Seeding: ${inserted} productos creados`);
+    }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    bootstrapLogger.error(
+      `El seeding fallo (${reason}), la app sigue levantando igual`,
+    );
+  }
 
   app.enableCors({
     origin: true,

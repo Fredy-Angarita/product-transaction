@@ -16,7 +16,6 @@ const createProductApi = (
   overrides: Partial<jest.Mocked<IProductApi>> = {},
 ): jest.Mocked<IProductApi> => ({
   getProducts: jest.fn().mockResolvedValue(products),
-  createProduct: jest.fn().mockResolvedValue(products[0]),
   seedProducts: jest.fn().mockResolvedValue(0),
   ...overrides,
 });
@@ -28,25 +27,6 @@ describe('ProductHandler', () => {
 
     await expect(handler.getProducts()).resolves.toEqual(products);
     expect(getProducts).toHaveBeenCalledTimes(1);
-  });
-
-  it('delegates product creation to the product API', async () => {
-    const input = {
-      name: 'New product',
-      image: 'https://example.com/new-product.png',
-      price: 25,
-      quantity: 3,
-    };
-    const createProduct = jest
-      .fn()
-      .mockResolvedValue({ id: 'new-id', ...input });
-    const handler = new ProductHandler(createProductApi({ createProduct }));
-
-    await expect(handler.createProduct(input)).resolves.toEqual({
-      id: 'new-id',
-      ...input,
-    });
-    expect(createProduct).toHaveBeenCalledWith(input);
   });
 
   it('delegates product seeding to the product API', async () => {

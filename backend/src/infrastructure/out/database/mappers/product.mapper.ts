@@ -1,7 +1,4 @@
-import type {
-  CreateProductInput,
-  Product,
-} from '../../../../../domain/models/product.model';
+import type { Product } from '../../../../../domain/models/product.model';
 import { ProductEntity } from '../entity/product.entity';
 
 export class ProductMapper {
@@ -15,7 +12,7 @@ export class ProductMapper {
     };
   }
 
-  static toEntity(product: Product | CreateProductInput): ProductEntity {
+  static toEntity(product: Product): ProductEntity {
     const entity = new ProductEntity();
     entity.name = product.name;
     entity.image = product.image;

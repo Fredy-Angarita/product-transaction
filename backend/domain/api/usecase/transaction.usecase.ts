@@ -1,12 +1,18 @@
 import { EmptyTransactionItemsError } from '../../errors/empty-transaction-items.error';
 import { InsufficientStockError } from '../../errors/insufficient-stock.error';
+import { PaymentProviderError } from '../../errors/payment-provider.error';
 import { ResourceNotFoundError } from '../../errors/resource-not-found.error';
-import { TransactionStatusEnum } from '../../models/transaction-status.enum';
+import {
+  TransactionStatusEnum,
+  WOMPI_STATUS_MAP,
+} from '../../models/transaction-status.enum';
 
 import type {
   CreateTransactionInput,
   Transaction,
 } from '../../models/transaction.model';
+import type { Customer } from '../../models/customer.model';
+import type { TransactionResponse } from '../../models/wompi.model';
 import type { ICustomerPersistencePort } from '../../spi/customer.persistence.port';
 import type { IDeliveryPersistencePort } from '../../spi/delivery.persistence.port';
 import type { IOrderItemPersistencePort } from '../../spi/order-item.persistence.port';
@@ -38,7 +44,10 @@ export class TransactionUseCase implements ITransactionApi {
 
     const quantitiesByProduct = this.getTotalByProduct(input.items);
     const items = await this.mapItems(quantitiesByProduct);
-    const total = this.subTotal(items);
+    // calculateFee() ya devuelve pesos, igual que subTotal(). Convertir a
+    // centavos aqui mezclaria unidades y el total no cuadra con el cobro.
+    const deliveryFee = this.deliveryUseCase.calculateFee();
+    const total = this.subTotal(items) + deliveryFee;
 
     const customer = await this.customerPersistence.create(input.customer);
     console.log('SE CREO EL CUSTOMER', JSON.stringify(customer));
@@ -52,7 +61,6 @@ export class TransactionUseCase implements ITransactionApi {
     });
     console.log('SE CREO LA TRANSACCIÓN', JSON.stringify(transaction));
 
-    const deliveryFee = this.deliveryUseCase.calculateFee();
     const delivery = await this.deliveryPersistence.create({
       ...input.delivery,
       fee: deliveryFee,
@@ -69,23 +77,12 @@ export class TransactionUseCase implements ITransactionApi {
       })),
     );
 
-    const wompiTransaction = await this.wompiUseCase.createWompiTransaction(
-      {
-        reference: transaction.uuid,
-        amount_in_cents: this.valueInCents(total),
-        currency: 'COP',
-        customer_email: customer.email,
-        payment_method_type: 'CARD',
-        acceptance_token: input.acceptanceToken,
-      },
-      input.card,
+    const result = await this.settlePayment(
+      transaction,
+      customer,
+      total,
+      input,
     );
-    console.log(
-      'SE CREO LA TRANSACCIÓN EN WOMPI',
-      JSON.stringify(wompiTransaction),
-    );
-
-    const result = await this.wompiUseCase.polling(wompiTransaction.data.id);
 
     if (!result) {
       await this.transactionPersistence.updateStatus(
@@ -112,11 +109,48 @@ export class TransactionUseCase implements ITransactionApi {
     } else if (result.data.status !== 'PENDING') {
       await this.transactionPersistence.updateStatus(
         transaction.uuid,
-        TransactionStatusEnum[result.data.status],
+        WOMPI_STATUS_MAP[result.data.status],
       );
     }
 
     return transaction;
+  }
+
+  private async settlePayment(
+    transaction: Transaction,
+    customer: Customer,
+    total: number,
+    input: CreateTransactionInput,
+  ): Promise<TransactionResponse | null> {
+    try {
+      const payload = {
+        reference: transaction.uuid,
+        amount_in_cents: this.valueInCents(total),
+        currency: 'COP',
+        customer_email: customer.email,
+        payment_method_type: 'CARD',
+        acceptance_token: input.acceptanceToken,
+      };
+      const wompiTransaction = await this.wompiUseCase.createWompiTransaction(
+        payload,
+        input.card,
+      );
+      console.log('payload', JSON.stringify(payload));
+      console.log(
+        'SE CREO LA TRANSACCIÓN EN WOMPI',
+        JSON.stringify(wompiTransaction),
+      );
+
+      return await this.wompiUseCase.polling(wompiTransaction.data.id);
+    } catch (error: unknown) {
+      const status =
+        error instanceof PaymentProviderError
+          ? error.transactionStatus
+          : TransactionStatusEnum.ERROR;
+
+      await this.transactionPersistence.updateStatus(transaction.uuid, status);
+      throw error;
+    }
   }
 
   private async mapItems(quantitiesByProduct: Map<string, number>) {

@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, throwError } from 'rxjs';
 import { createHash } from 'crypto';
 import type {
   NewTransaction,
@@ -10,6 +10,7 @@ import type {
   WompiAcceptableTerms,
 } from '../../../../../domain/models/wompi.model';
 import type { IWompiPaymentPort } from '../../../../../domain/spi/wompi.payment.port';
+import { WompiErrorFactory } from './wompi-error';
 import { WompiMapper } from './wompi.mapper';
 import type { AcceptableTermsRawResponse } from '../raw/acceptable-terms.raw';
 import { NewTransactionRaw } from '../raw/new-transaction.raw';
@@ -21,6 +22,8 @@ import { CardModel } from '../../../../../domain/models/card.model';
 export class WompiAdapter implements IWompiPaymentPort {
   private readonly publicKey: string;
   private readonly privKey: string;
+  private readonly logger = new Logger(WompiAdapter.name);
+
   constructor(
     private readonly http: HttpService,
     private readonly config: ConfigService,
@@ -36,23 +39,42 @@ export class WompiAdapter implements IWompiPaymentPort {
     return createHash('sha256').update(concat).digest('hex');
   }
 
+  private handleError(operation: string, error: unknown): never {
+    const mapped = WompiErrorFactory.from(error);
+    const log = WompiErrorFactory.toLog(operation, mapped);
+    this.logger.error(log.message, log.context);
+    throw mapped;
+  }
+
   async tokenizeCard(card: CardModel): Promise<string> {
     const response = await firstValueFrom(
-      this.http.post<TokenizeCardRaw>('/tokens/cards', card, {
-        headers: {
-          Authorization: `Bearer ${this.publicKey}`,
-          'Content-Type': 'application/json',
-        },
-      }),
+      this.http
+        .post<TokenizeCardRaw>('/tokens/cards', card, {
+          headers: {
+            Authorization: `Bearer ${this.publicKey}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        .pipe(
+          catchError((error: unknown) =>
+            throwError(() => this.handleError('tokenizeCard', error)),
+          ),
+        ),
     );
     return response.data.data.id;
   }
 
   async getAcceptableTerms(): Promise<WompiAcceptableTerms> {
     const response = await firstValueFrom(
-      this.http.get<AcceptableTermsRawResponse>('/merchants/info', {
-        headers: { 'x-merchant-public-key': this.publicKey },
-      }),
+      this.http
+        .get<AcceptableTermsRawResponse>('/merchants/info', {
+          headers: { 'x-merchant-public-key': this.publicKey },
+        })
+        .pipe(
+          catchError((error: unknown) =>
+            throwError(() => this.handleError('getAcceptableTerms', error)),
+          ),
+        ),
     );
 
     return WompiMapper.AcceptableToDomain(response.data);
@@ -62,24 +84,36 @@ export class WompiAdapter implements IWompiPaymentPort {
     transaction: NewTransactionRequest,
   ): Promise<NewTransaction> {
     const response = await firstValueFrom(
-      this.http.post<NewTransactionRaw>('/transactions', transaction, {
-        headers: {
-          Authorization: `Bearer ${this.privKey}`,
-          'Content-Type': 'application/json',
-        },
-      }),
+      this.http
+        .post<NewTransactionRaw>('/transactions', transaction, {
+          headers: {
+            Authorization: `Bearer ${this.privKey}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        .pipe(
+          catchError((error: unknown) =>
+            throwError(() => this.handleError('createWompiTransaction', error)),
+          ),
+        ),
     );
     return WompiMapper.NewTransactionToDomain(response.data);
   }
 
   async consultTractionState(id: string): Promise<TransactionResponse> {
     const response = await firstValueFrom(
-      this.http.get<TransactionResponseRaw>(`/transactions/${id}`, {
-        headers: {
-          Authorization: `Bearer ${this.privKey}`,
-          'Content-Type': 'application/json',
-        },
-      }),
+      this.http
+        .get<TransactionResponseRaw>(`/transactions/${id}`, {
+          headers: {
+            Authorization: `Bearer ${this.privKey}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        .pipe(
+          catchError((error: unknown) =>
+            throwError(() => this.handleError('consultTractionState', error)),
+          ),
+        ),
     );
     return WompiMapper.TransactionResponseToDomain(response.data);
   }
