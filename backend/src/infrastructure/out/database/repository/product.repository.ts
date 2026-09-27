@@ -44,4 +44,8 @@ export class ProductRepository implements IProductPersistencePort {
     const entities = products.map((product) => ProductMapper.toEntity(product));
     await this.productRepository.save(entities);
   }
+
+  async updateStock(id: string, quantity: number): Promise<void> {
+    await this.productRepository.update({ id }, { quantity });
+  }
 }

@@ -2,14 +2,7 @@ jest.mock('@nestjs/typeorm', () => ({
   InjectRepository: () => () => undefined,
 }));
 
-import type {
-  DataSource,
-  EntityManager,
-  ObjectLiteral,
-  Repository,
-} from 'typeorm';
-
-import { InsufficientStockError } from '../../../../../domain/errors/insufficient-stock.error';
+import type { ObjectLiteral, Repository } from 'typeorm';
 
 import { CustomerEntity } from '../entity/customer.entity';
 import { DeliveryEntity } from '../entity/delivery.entity';
@@ -259,10 +252,10 @@ describe('OrderItemRepository', () => {
     );
   });
 
-  it('saves all order items with the provided transaction manager', async () => {
+  it('saves all order items in a single query', async () => {
     const { repository: typeOrm } = createTypeOrmRepository<OrderItemEntity>();
     const save = jest.fn().mockResolvedValue([orderItemEntity]);
-    const manager = { save } as unknown as EntityManager;
+    typeOrm.save = save;
     const input = {
       transactionId: 'transaction-id',
       productId: 'product-id',
@@ -270,12 +263,9 @@ describe('OrderItemRepository', () => {
       quantity: 2,
     };
 
-    await expect(
-      new OrderItemRepository(typeOrm).saveAll(manager, [input]),
-    ).resolves.toEqual([orderItemEntity]);
-    expect(save).toHaveBeenCalledWith(OrderItemEntity, [
-      expect.objectContaining(input),
-    ]);
+    await new OrderItemRepository(typeOrm).saveAll([input]);
+
+    expect(save).toHaveBeenCalledWith([expect.objectContaining(input)]);
   });
 
   it('returns null when an order item does not exist', async () => {
@@ -312,61 +302,12 @@ describe('OrderItemRepository', () => {
 describe('TransactionRepository', () => {
   const createInput = () => ({
     paymentReference: 'PAY-1',
+    acceptanceToken: 'acceptance-token-123',
+    acceptPersonalAuth: 'personal-auth-456',
     total: 39.98,
     statusId: 1,
-    customer: customerInput,
-    delivery: {
-      country: deliveryEntity.country,
-      city: deliveryEntity.city,
-      locality: deliveryEntity.locality,
-      subLocality: deliveryEntity.subLocality,
-      address: deliveryEntity.address,
-      postalCode: deliveryEntity.postalCode,
-      additionalInfo: deliveryEntity.additionalInfo,
-    },
-    items: [{ productId: 'product-id', price: 19.99, quantity: 2 }],
+    customerId: 'customer-id',
   });
-
-  const createAggregate = () => {
-    const decrement = jest.fn().mockResolvedValue({ affected: 1 });
-    const findOneBy = jest.fn().mockResolvedValue(statusEntity);
-    const save = jest
-      .fn()
-      .mockResolvedValueOnce(customerEntity)
-      .mockResolvedValueOnce(transactionEntity)
-      .mockResolvedValueOnce(deliveryEntity);
-    const findBy = jest.fn().mockResolvedValue([productEntity]);
-    const findOne = jest.fn().mockResolvedValue(transactionEntity);
-    const manager = {
-      decrement,
-      findOneBy,
-      save,
-      findBy,
-      findOne,
-    } as unknown as EntityManager;
-    const saveAll = jest.fn().mockResolvedValue([orderItemEntity]);
-    const orderItemRepository = {
-      saveAll,
-    } as unknown as OrderItemRepository;
-    const dataSource = {
-      transaction: jest.fn(
-        async (callback: (entityManager: EntityManager) => Promise<unknown>) =>
-          callback(manager),
-      ),
-    } as unknown as DataSource;
-
-    return {
-      decrement,
-      findOneBy,
-      save,
-      findBy,
-      findOne,
-      saveAll,
-      manager,
-      dataSource,
-      orderItemRepository,
-    };
-  };
 
   it('lists and finds transactions', async () => {
     const {
@@ -374,14 +315,9 @@ describe('TransactionRepository', () => {
       findOne,
       repository: typeOrm,
     } = createTypeOrmRepository<TransactionEntity>();
-    const aggregate = createAggregate();
-    const repository = new TransactionRepository(
-      typeOrm,
-      aggregate.dataSource,
-      aggregate.orderItemRepository,
-    );
     find.mockResolvedValue([transactionEntity]);
     findOne.mockResolvedValue(transactionEntity);
+    const repository = new TransactionRepository(typeOrm);
 
     await expect(repository.getAll()).resolves.toEqual([
       expect.objectContaining({ uuid: 'transaction-id' }),
@@ -394,83 +330,27 @@ describe('TransactionRepository', () => {
   it('returns null when a transaction does not exist', async () => {
     const { findOne, repository: typeOrm } =
       createTypeOrmRepository<TransactionEntity>();
-    const aggregate = createAggregate();
     findOne.mockResolvedValue(null);
+    const repository = new TransactionRepository(typeOrm);
 
-    await expect(
-      new TransactionRepository(
-        typeOrm,
-        aggregate.dataSource,
-        aggregate.orderItemRepository,
-      ).getById('missing'),
-    ).resolves.toBeNull();
+    await expect(repository.getById('missing')).resolves.toBeNull();
   });
 
-  it('creates the aggregate and reloads it with relations', async () => {
-    const { repository: typeOrm } =
+  it('creates a transaction', async () => {
+    const { save, repository: typeOrm } =
       createTypeOrmRepository<TransactionEntity>();
-    const aggregate = createAggregate();
-    const repository = new TransactionRepository(
-      typeOrm,
-      aggregate.dataSource,
-      aggregate.orderItemRepository,
-    );
+    save.mockResolvedValue(transactionEntity);
+    const repository = new TransactionRepository(typeOrm);
 
     await expect(repository.create(createInput())).resolves.toEqual(
       expect.objectContaining({ uuid: 'transaction-id', total: 39.98 }),
     );
-    expect(aggregate.decrement).toHaveBeenCalledWith(
-      ProductEntity,
-      expect.objectContaining({ id: 'product-id' }),
-      'quantity',
-      2,
-    );
-    expect(aggregate.saveAll).toHaveBeenCalledWith(aggregate.manager, [
+    expect(save).toHaveBeenCalledWith(
       expect.objectContaining({
-        transactionId: 'transaction-id',
-        productId: 'product-id',
-        price: 19.99,
-        quantity: 2,
+        total: 39.98,
+        statusId: 1,
+        customerId: 'customer-id',
       }),
-    ]);
-  });
-
-  it('returns the assembled aggregate when it cannot be reloaded', async () => {
-    const { repository: typeOrm } =
-      createTypeOrmRepository<TransactionEntity>();
-    const aggregate = createAggregate();
-    aggregate.findOne.mockResolvedValue(null);
-    const repository = new TransactionRepository(
-      typeOrm,
-      aggregate.dataSource,
-      aggregate.orderItemRepository,
     );
-
-    const result = await repository.create(createInput());
-
-    expect(result.uuid).toBe('transaction-id');
-    expect(result.customer?.id).toBe('customer-id');
-    expect(result.status?.id).toBe(1);
-    expect(result.delivery?.id).toBe('delivery-id');
-    expect(result.items[0]?.id).toBe('item-id');
-  });
-
-  it('rejects and rolls back when atomic stock reservation fails', async () => {
-    const { repository: typeOrm } =
-      createTypeOrmRepository<TransactionEntity>();
-    const aggregate = createAggregate();
-    aggregate.decrement.mockResolvedValue({ affected: 0 });
-    aggregate.findOneBy.mockResolvedValue({ ...productEntity, quantity: 1 });
-    const repository = new TransactionRepository(
-      typeOrm,
-      aggregate.dataSource,
-      aggregate.orderItemRepository,
-    );
-
-    await expect(repository.create(createInput())).rejects.toBeInstanceOf(
-      InsufficientStockError,
-    );
-    expect(aggregate.save).not.toHaveBeenCalled();
-    expect(aggregate.saveAll).not.toHaveBeenCalled();
   });
 });

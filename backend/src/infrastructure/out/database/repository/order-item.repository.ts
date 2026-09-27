@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
 import type {
   CreateOrderItemInput,
@@ -41,11 +41,8 @@ export class OrderItemRepository implements IOrderItemPersistencePort {
     return persisted ?? OrderItemMapper.toDomain(saved);
   }
 
-  async saveAll(
-    manager: EntityManager,
-    input: CreateOrderItemInput[],
-  ): Promise<OrderItemEntity[]> {
-    const entities = input.map((item) => OrderItemMapper.toEntity(item));
-    return manager.save(OrderItemEntity, entities);
+  async saveAll(items: CreateOrderItemInput[]): Promise<void> {
+    const entities = items.map((item) => OrderItemMapper.toEntity(item));
+    await this.orderItemRepository.save(entities);
   }
 }

@@ -61,14 +61,12 @@ const delivery = {
   transactionId: 'transaction-id',
   transaction: {
     uuid: 'transaction-id',
-    paymentReference: 'PAY-1',
     total: '39.98',
   },
 } as unknown as DeliveryEntity;
 
 const transaction = {
   uuid: 'transaction-id',
-  paymentReference: 'PAY-1',
   total: '39.98',
   customerId: customer.id,
   statusId: status.id,
@@ -112,7 +110,6 @@ describe('DeliveryMapper', () => {
       transactionId: 'transaction-id',
       transaction: {
         uuid: 'transaction-id',
-        paymentReference: 'PAY-1',
         total: 39.98,
       },
     });
@@ -193,7 +190,6 @@ describe('TransactionMapper', () => {
     const result = TransactionMapper.toDomain(transaction);
 
     expect(result.uuid).toBe('transaction-id');
-    expect(result.paymentReference).toBe('PAY-1');
     expect(result.total).toBe(39.98);
     expect(result.customerId).toBe('customer-id');
     expect(result.statusId).toBe(1);
@@ -227,9 +223,11 @@ describe('TransactionMapper', () => {
 
   it('maps transaction input to an entity', () => {
     const input = {
-      paymentReference: 'PAY-1',
+      acceptanceToken: 'acceptance-token-123',
+      acceptPersonalAuth: 'personal-auth-456',
       total: 39.98,
       statusId: 1,
+      customerId: 'customer-id',
     };
 
     expect(TransactionMapper.toEntity(input)).toEqual(

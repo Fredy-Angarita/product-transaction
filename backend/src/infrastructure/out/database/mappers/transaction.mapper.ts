@@ -14,7 +14,8 @@ export class TransactionMapper {
   static toDomain(entity: TransactionEntity): Transaction {
     return {
       uuid: entity.uuid,
-      paymentReference: entity.paymentReference,
+      acceptanceToken: entity.acceptanceToken,
+      acceptPersonalAuth: entity.acceptPersonalAuth,
       total: Number(entity.total),
       customerId: entity.customerId ?? entity.customer?.id ?? '',
       statusId: entity.statusId ?? entity.status?.id ?? 0,
@@ -36,13 +37,19 @@ export class TransactionMapper {
   static toEntity(
     input: Pick<
       CreateTransactionPersistenceInput,
-      'paymentReference' | 'total' | 'statusId'
+      | 'total'
+      | 'statusId'
+      | 'acceptPersonalAuth'
+      | 'acceptanceToken'
+      | 'customerId'
     >,
   ): TransactionEntity {
     const entity = new TransactionEntity();
-    entity.paymentReference = input.paymentReference;
     entity.total = input.total;
     entity.statusId = input.statusId;
+    entity.acceptPersonalAuth = input.acceptPersonalAuth;
+    entity.acceptanceToken = input.acceptanceToken;
+    entity.customerId = input.customerId;
     return entity;
   }
 }

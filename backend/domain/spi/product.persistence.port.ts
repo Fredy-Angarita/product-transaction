@@ -8,4 +8,5 @@ export interface IProductPersistencePort {
   getByIds(ids: string[]): Promise<Product[]>;
   create(input: CreateProductInput): Promise<Product>;
   saveAll(products: Product[]): Promise<void>;
+  updateStock(id: string, quantity: number): Promise<void>;
 }

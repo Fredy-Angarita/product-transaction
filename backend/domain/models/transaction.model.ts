@@ -6,8 +6,9 @@ import type { TransactionStatus } from './transaction-status.model';
 
 export interface Transaction {
   uuid: string;
-  paymentReference: string;
   total: number;
+  acceptanceToken: string;
+  acceptPersonalAuth: string;
   customerId: string;
   statusId: number;
   customer: Customer | null;
@@ -19,8 +20,8 @@ export interface Transaction {
 }
 
 export interface CreateTransactionInput {
-  paymentReference: string;
-  statusId: number;
+  acceptanceToken: string;
+  acceptPersonalAuth: string;
   customer: CreateCustomerInput;
   delivery: DeliveryData;
   items: TransactionItemInput[];
@@ -28,14 +29,9 @@ export interface CreateTransactionInput {
 }
 
 export interface CreateTransactionPersistenceInput {
-  paymentReference: string;
+  acceptanceToken: string;
+  acceptPersonalAuth: string;
   total: number;
   statusId: number;
-  customer: CreateCustomerInput;
-  delivery: DeliveryData;
-  items: {
-    productId: string;
-    price: number;
-    quantity: number;
-  }[];
+  customerId: string;
 }

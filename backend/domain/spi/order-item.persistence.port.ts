@@ -9,6 +9,7 @@ export const ORDER_ITEM_PERSISTENCE_PORT = Symbol(
 
 export interface IOrderItemPersistencePort {
   getAll(): Promise<OrderItem[]>;
+  getById(id: string): Promise<OrderItem | null>;
   create(input: CreateOrderItemInput): Promise<OrderItem>;
-  create(input: CreateOrderItemInput): Promise<OrderItem>;
+  saveAll(items: CreateOrderItemInput[]): Promise<void>;
 }

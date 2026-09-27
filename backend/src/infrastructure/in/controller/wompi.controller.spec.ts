@@ -1,4 +1,4 @@
-import type { WompiAcceptableTerms } from '../../../../domain/models/wompi-acceptable-terms.model';
+import type { WompiAcceptableTerms } from '../../../../domain/models/wompi.model';
 import { WompiHandler } from '../../../../application/handlers/wompi.handler';
 import { WompiController } from './wompi.controller';
 

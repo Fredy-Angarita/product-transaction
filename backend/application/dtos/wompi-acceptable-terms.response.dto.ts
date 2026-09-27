@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import type {
   WompiAcceptableTerms,
   WompiAgreement,
-} from '../../domain/models/wompi-acceptable-terms.model';
+} from '../../domain/models/wompi.model';
 
 export class WompiAgreementResponseDto {
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiJ9' })

@@ -7,13 +7,14 @@ import type {
   CreateTransactionInput,
   Transaction,
 } from '../../models/transaction.model';
+import type { ICalculateFeeApi } from '../calculate-fee.interface';
 import type { ICustomerPersistencePort } from '../../spi/customer.persistence.port';
 import type { IDeliveryPersistencePort } from '../../spi/delivery.persistence.port';
 import type { IOrderItemPersistencePort } from '../../spi/order-item.persistence.port';
 import type { IProductPersistencePort } from '../../spi/product.persistence.port';
 import type { ITransactionPersistencePort } from '../../spi/transaction.persistence.port';
 import type { ITransactionStatusPersistencePort } from '../../spi/transaction-status.persistence.port';
-import type { IWompiPaymentPort } from '../../spi/wompi.payment.port';
+import type { IWompiApi } from '../wompi.interface';
 import type { CardModel } from '../../models/card.model';
 import { CustomerUseCase } from './customer.usecase';
 import { DeliveryUseCase } from './delivery.usecase';
@@ -56,9 +57,33 @@ const card: CardModel = {
   card_holder: 'Test User',
 };
 
-const createWompiPayment = (): jest.Mocked<IWompiPaymentPort> => ({
+const createWompiPayment = (): jest.Mocked<IWompiApi> => ({
   getAcceptableTerms: jest.fn(),
   tokenizeCard: jest.fn().mockResolvedValue('tok_123'),
+  generateSign: jest.fn().mockReturnValue('signature-123'),
+  createWompiTransaction: jest.fn().mockResolvedValue({
+    data: {
+      id: 'wompi-txn-123',
+      reference: 'PAY-1',
+      created_at: '2026-09-25T10:00:00.000Z',
+      amount_in_cents: 999500,
+      currency: 'COP',
+      customer_email: 'ana@example.com',
+      payment_method_type: 'CARD',
+      status: 'PENDING',
+    },
+  }),
+  polling: jest.fn().mockResolvedValue({
+    data: {
+      id: 'wompi-txn-123',
+      reference: 'PAY-1',
+      status: 'APPROVED',
+      amount_in_cents: 999500,
+      currency: 'COP',
+      payment_method_type: 'CARD',
+      status_message: 'Transaction approved',
+    },
+  }),
 });
 
 const deliveryInput = {
@@ -82,11 +107,16 @@ const createTransactionInput = (
   ],
 ): CreateTransactionInput => ({
   paymentReference: 'PAY-1',
-  statusId: 1,
+  acceptanceToken: 'acceptance-token-123',
+  acceptPersonalAuth: 'personal-auth-456',
   customer: customerInput,
   delivery: deliveryInput,
   items,
   card,
+});
+
+const createDeliveryFee = (): jest.Mocked<ICalculateFeeApi> => ({
+  calculateFee: jest.fn().mockReturnValue(1500),
 });
 
 const createCustomerPersistence =
@@ -108,6 +138,7 @@ const createProductPersistence = (): jest.Mocked<IProductPersistencePort> => ({
   getByIds: jest.fn().mockResolvedValue([product]),
   create: jest.fn().mockResolvedValue(product),
   saveAll: jest.fn().mockResolvedValue(undefined),
+  updateStock: jest.fn().mockResolvedValue(undefined),
 });
 
 const createTransactionPersistence =
@@ -115,6 +146,7 @@ const createTransactionPersistence =
     getAll: jest.fn().mockResolvedValue([transaction]),
     getById: jest.fn().mockResolvedValue(transaction),
     create: jest.fn().mockResolvedValue(transaction),
+    updateStatus: jest.fn().mockResolvedValue(undefined),
   });
 
 const createDeliveryPersistence =
@@ -126,7 +158,9 @@ const createDeliveryPersistence =
 const createOrderItemPersistence =
   (): jest.Mocked<IOrderItemPersistencePort> => ({
     getAll: jest.fn().mockResolvedValue([orderItem]),
+    getById: jest.fn().mockResolvedValue(orderItem),
     create: jest.fn().mockResolvedValue(orderItem),
+    saveAll: jest.fn().mockResolvedValue(undefined),
   });
 
 describe('CustomerUseCase', () => {
@@ -286,8 +320,11 @@ describe('TransactionUseCase', () => {
     const useCase = new TransactionUseCase(
       createTransactionPersistence(),
       createProductPersistence(),
-      createStatusPersistence(),
       createWompiPayment(),
+      createDeliveryPersistence(),
+      createOrderItemPersistence(),
+      createCustomerPersistence(),
+      createDeliveryFee(),
     );
 
     await expect(useCase.getTransactions()).resolves.toEqual([transaction]);
@@ -296,13 +333,19 @@ describe('TransactionUseCase', () => {
   it('calculates prices and total, merging repeated products', async () => {
     const transactionPersistence = createTransactionPersistence();
     const productPersistence = createProductPersistence();
-    const statusPersistence = createStatusPersistence();
     const wompiPayment = createWompiPayment();
+    const deliveryPersistence = createDeliveryPersistence();
+    const orderItemPersistence = createOrderItemPersistence();
+    const customerPersistence = createCustomerPersistence();
+    const deliveryFee = createDeliveryFee();
     const useCase = new TransactionUseCase(
       transactionPersistence,
       productPersistence,
-      statusPersistence,
       wompiPayment,
+      deliveryPersistence,
+      orderItemPersistence,
+      customerPersistence,
+      deliveryFee,
     );
     const input = createTransactionInput([
       { productId: 'product-id', quantity: 2 },
@@ -312,66 +355,44 @@ describe('TransactionUseCase', () => {
     await expect(useCase.createTransaction(input)).resolves.toEqual(
       transaction,
     );
-    expect(statusPersistence.getById).toHaveBeenCalledWith(1);
     expect(productPersistence.getByIds).toHaveBeenCalledWith(['product-id']);
-    expect(wompiPayment.tokenizeCard).toHaveBeenCalledWith(card);
+    expect(customerPersistence.create).toHaveBeenCalledWith(customerInput);
     expect(transactionPersistence.create).toHaveBeenCalledWith({
-      paymentReference: 'PAY-1',
+      acceptanceToken: 'acceptance-token-123',
+      acceptPersonalAuth: 'personal-auth-456',
       total: 99.95,
       statusId: 1,
-      customer: customerInput,
-      delivery: deliveryInput,
-      items: [{ productId: 'product-id', price: 19.99, quantity: 5 }],
+      customerId: customer.id,
     });
-  });
-
-  it('does not persist the transaction when card tokenization fails', async () => {
-    const transactionPersistence = createTransactionPersistence();
-    const wompiPayment = createWompiPayment();
-    wompiPayment.tokenizeCard.mockRejectedValue(
-      new Error('tokenization failed'),
-    );
-    const useCase = new TransactionUseCase(
-      transactionPersistence,
-      createProductPersistence(),
-      createStatusPersistence(),
-      wompiPayment,
-    );
-
-    await expect(
-      useCase.createTransaction(createTransactionInput()),
-    ).rejects.toThrow('tokenization failed');
-    expect(transactionPersistence.create).not.toHaveBeenCalled();
+    expect(deliveryPersistence.create).toHaveBeenCalledWith({
+      ...deliveryInput,
+      fee: 1500,
+      transactionId: transaction.uuid,
+    });
+    expect(orderItemPersistence.saveAll).toHaveBeenCalledWith([
+      {
+        transactionId: transaction.uuid,
+        productId: 'product-id',
+        price: 19.99,
+        quantity: 5,
+      },
+    ]);
   });
 
   it('rejects a transaction without items', async () => {
     const useCase = new TransactionUseCase(
       createTransactionPersistence(),
       createProductPersistence(),
-      createStatusPersistence(),
       createWompiPayment(),
+      createDeliveryPersistence(),
+      createOrderItemPersistence(),
+      createCustomerPersistence(),
+      createDeliveryFee(),
     );
 
     await expect(
       useCase.createTransaction(createTransactionInput([])),
     ).rejects.toThrow('A transaction must contain at least one item');
-  });
-
-  it('rejects a transaction when its status does not exist', async () => {
-    const transactionPersistence = createTransactionPersistence();
-    const statusPersistence = createStatusPersistence();
-    statusPersistence.getById.mockResolvedValue(null);
-    const useCase = new TransactionUseCase(
-      transactionPersistence,
-      createProductPersistence(),
-      statusPersistence,
-      createWompiPayment(),
-    );
-
-    await expect(
-      useCase.createTransaction(createTransactionInput()),
-    ).rejects.toBeInstanceOf(ResourceNotFoundError);
-    expect(transactionPersistence.create).not.toHaveBeenCalled();
   });
 
   it('rejects a transaction when a product does not exist', async () => {
@@ -381,8 +402,11 @@ describe('TransactionUseCase', () => {
     const useCase = new TransactionUseCase(
       transactionPersistence,
       productPersistence,
-      createStatusPersistence(),
       createWompiPayment(),
+      createDeliveryPersistence(),
+      createOrderItemPersistence(),
+      createCustomerPersistence(),
+      createDeliveryFee(),
     );
 
     await expect(
@@ -397,8 +421,11 @@ describe('TransactionUseCase', () => {
     const useCase = new TransactionUseCase(
       transactionPersistence,
       productPersistence,
-      createStatusPersistence(),
       createWompiPayment(),
+      createDeliveryPersistence(),
+      createOrderItemPersistence(),
+      createCustomerPersistence(),
+      createDeliveryFee(),
     );
 
     await expect(

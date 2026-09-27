@@ -67,16 +67,28 @@ export class TransactionItemDto {
 }
 
 export class CreateTransactionDto {
-  @ApiProperty({ example: 'PAY-2026-0001', maxLength: 150 })
+  @ApiProperty({
+    example: 'token-abc123',
+    description: 'Token de aceptación de Wompi',
+    maxLength: 500,
+  })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(150)
-  paymentReference!: string;
+  @MaxLength(500)
+  acceptanceToken!: string;
+
+  @ApiProperty({
+    example: 'token-xyz789',
+    description: 'Token de autorización personal de Wompi',
+    maxLength: 500,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  acceptPersonalAuth!: string;
 
   @ApiProperty({ example: 1, minimum: 1 })
-  @IsInt()
-  @Min(1)
-  statusId!: number;
+  statusId?: number;
 
   @ApiProperty({ type: CreateCustomerDto })
   @ValidateNested()
@@ -104,9 +116,6 @@ export class CreateTransactionDto {
 export class TransactionResponseDto {
   @ApiProperty({ format: 'uuid' })
   uuid!: string;
-
-  @ApiProperty({ example: 'PAY-2026-0001' })
-  paymentReference!: string;
 
   @ApiProperty({ example: 49.98, minimum: 0 })
   total!: number;
@@ -137,7 +146,6 @@ export class TransactionResponseDto {
 
   constructor(transaction: Transaction) {
     this.uuid = transaction.uuid;
-    this.paymentReference = transaction.paymentReference;
     this.total = transaction.total;
     this.customerId = transaction.customerId;
     this.statusId = transaction.statusId;

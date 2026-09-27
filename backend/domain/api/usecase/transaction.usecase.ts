@@ -1,22 +1,29 @@
 import { EmptyTransactionItemsError } from '../../errors/empty-transaction-items.error';
 import { InsufficientStockError } from '../../errors/insufficient-stock.error';
 import { ResourceNotFoundError } from '../../errors/resource-not-found.error';
+
 import type {
   CreateTransactionInput,
   Transaction,
 } from '../../models/transaction.model';
+import type { ICustomerPersistencePort } from '../../spi/customer.persistence.port';
+import type { IDeliveryPersistencePort } from '../../spi/delivery.persistence.port';
+import type { IOrderItemPersistencePort } from '../../spi/order-item.persistence.port';
 import type { IProductPersistencePort } from '../../spi/product.persistence.port';
 import type { ITransactionPersistencePort } from '../../spi/transaction.persistence.port';
-import type { ITransactionStatusPersistencePort } from '../../spi/transaction-status.persistence.port';
-import type { IWompiPaymentPort } from '../../spi/wompi.payment.port';
+import type { IWompiApi } from '../wompi.interface';
 import type { ITransactionApi } from '../transaction.interface';
+import { ICalculateFeeApi } from '../calculate-fee.interface';
 
 export class TransactionUseCase implements ITransactionApi {
   constructor(
     private readonly transactionPersistence: ITransactionPersistencePort,
     private readonly productPersistence: IProductPersistencePort,
-    private readonly statusPersistence: ITransactionStatusPersistencePort,
-    private readonly wompiPayment: IWompiPaymentPort,
+    private readonly wompiUseCase: IWompiApi,
+    private readonly deliveryPersistence: IDeliveryPersistencePort,
+    private readonly orderItemPersistence: IOrderItemPersistencePort,
+    private readonly customerPersistence: ICustomerPersistencePort,
+    private readonly deliveryUseCase: ICalculateFeeApi,
   ) {}
 
   getTransactions(): Promise<Transaction[]> {
@@ -28,18 +35,80 @@ export class TransactionUseCase implements ITransactionApi {
       throw new EmptyTransactionItemsError();
     }
 
-    const status = await this.statusPersistence.getById(input.statusId);
+    const quantitiesByProduct = this.getTotalByProduct(input.items);
+    const items = await this.mapItems(quantitiesByProduct);
+    const total = this.subTotal(items);
 
-    if (!status) {
-      throw new ResourceNotFoundError('Transaction status', input.statusId);
+    const customer = await this.customerPersistence.create(input.customer);
+
+    const transaction = await this.transactionPersistence.create({
+      total,
+      acceptanceToken: input.acceptanceToken,
+      acceptPersonalAuth: input.acceptPersonalAuth,
+      statusId: 1,
+      customerId: customer.id,
+    });
+
+    const deliveryFee = this.deliveryUseCase.calculateFee();
+    await this.deliveryPersistence.create({
+      ...input.delivery,
+      fee: deliveryFee,
+      transactionId: transaction.uuid,
+    });
+
+    await this.orderItemPersistence.saveAll(
+      items.map((item) => ({
+        transactionId: transaction.uuid,
+        productId: item.productId,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+    );
+
+    const wompiTransaction = await this.wompiUseCase.createWompiTransaction(
+      {
+        reference: transaction.uuid,
+        amount_in_cents: this.valueInCents(total),
+        currency: 'COP',
+        customer_email: customer.email,
+        payment_method_type: 'CARD',
+        acceptance_token: input.acceptanceToken,
+      },
+      input.card,
+    );
+
+    const result = await this.wompiUseCase.polling(wompiTransaction.data.id);
+
+    if (!result) {
+      await this.transactionPersistence.updateStatus(transaction.uuid, 3);
     }
 
-    const quantitiesByProduct = this.getTotal(input.items);
+    if (!result) {
+      throw new Error('Polling failed: no response from Wompi');
+    }
 
+    if (result.data.status === 'APPROVED') {
+      for (const item of items) {
+        const product = await this.productPersistence.getById(item.productId);
+        if (product) {
+          await this.productPersistence.updateStock(
+            item.productId,
+            product.quantity - item.quantity,
+          );
+        }
+      }
+      await this.transactionPersistence.updateStatus(transaction.uuid, 2);
+    } else if (result.data.status === 'DECLINED') {
+      await this.transactionPersistence.updateStatus(transaction.uuid, 3);
+    }
+
+    return transaction;
+  }
+
+  private async mapItems(quantitiesByProduct: Map<string, number>) {
     const productIds = Array.from(quantitiesByProduct.keys());
     const products = await this.productPersistence.getByIds(productIds);
     const productMap = new Map(products.map((p) => [p.id, p]));
-
     const items = Array.from(quantitiesByProduct.entries()).map(
       ([productId, quantity]) => {
         const product = productMap.get(productId);
@@ -63,8 +132,17 @@ export class TransactionUseCase implements ITransactionApi {
         };
       },
     );
+    return items;
+  }
 
-    const total = Number(
+  private subTotal(
+    items: {
+      productId: string;
+      price: number;
+      quantity: number;
+    }[],
+  ): number {
+    return Number(
       items
         .reduce(
           (accumulator, item) => accumulator + item.price * item.quantity,
@@ -72,22 +150,9 @@ export class TransactionUseCase implements ITransactionApi {
         )
         .toFixed(2),
     );
-
-    // El token no se persiste: queda disponible para enviarlo a Wompi
-    // en una iteracion posterior.
-    await this.wompiPayment.tokenizeCard(input.card);
-
-    return this.transactionPersistence.create({
-      paymentReference: input.paymentReference,
-      total,
-      statusId: input.statusId,
-      customer: input.customer,
-      delivery: input.delivery,
-      items,
-    });
   }
 
-  private getTotal(
+  private getTotalByProduct(
     items: Array<{ productId: string; quantity: number }>,
   ): Map<string, number> {
     const map = new Map<string, number>();
@@ -97,7 +162,7 @@ export class TransactionUseCase implements ITransactionApi {
     return map;
   }
 
-  private priceInCents(total: number): number {
-    return total * 100;
+  private valueInCents(value: number) {
+    return value * 100;
   }
 }

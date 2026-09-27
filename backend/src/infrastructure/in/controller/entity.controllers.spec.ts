@@ -49,14 +49,14 @@ const delivery: Delivery = {
   transactionId: 'transaction-id',
   transaction: {
     uuid: 'transaction-id',
-    paymentReference: 'PAY-1',
     total: 39.98,
   },
 };
 
 const transaction: Transaction = {
   uuid: 'transaction-id',
-  paymentReference: 'PAY-1',
+  acceptanceToken: 'acceptance-token-123',
+  acceptPersonalAuth: 'personal-auth-456',
   total: 39.98,
   customerId: customer.id,
   statusId: status.id,
@@ -213,12 +213,54 @@ describe('entity controllers', () => {
 
     await expect(controller.getTransactions()).resolves.toEqual([
       expect.objectContaining({
+        uuid: 'transaction-id',
         customer,
         status,
         delivery,
         items: [expect.any(Object)],
       }),
     ]);
+    await expect(controller.createTransaction(input)).resolves.toEqual(
+      expect.objectContaining({ uuid: 'transaction-id' }),
+    );
+  });
+
+  it('creates a transaction with acceptance tokens', async () => {
+    const input = {
+      paymentReference: 'PAY-1',
+      acceptanceToken: 'acceptance-token-123',
+      acceptPersonalAuth: 'personal-auth-456',
+      statusId: 1,
+      customer: {
+        name: 'Ana',
+        lastName: 'Gómez',
+        identificationNumber: '123456789',
+        email: 'ana@example.com',
+      },
+      delivery: {
+        country: 'Colombia',
+        city: 'Bogotá',
+        locality: 'Chapinero',
+        subLocality: 'Chapinero Alto',
+        address: 'Calle 100 # 10-20',
+        postalCode: '110111',
+        additionalInfo: 'Apartamento 401',
+      },
+      items: [{ productId: 'product-id', quantity: 2 }],
+      card: {
+        number: '4242424242424242',
+        cvc: '123',
+        exp_month: '08',
+        exp_year: '28',
+        card_holder: 'Test User',
+      },
+    };
+
+    const controller = new TransactionController({
+      getTransactions: jest.fn().mockResolvedValue([]),
+      createTransaction: jest.fn().mockResolvedValue(transaction),
+    } as never);
+
     await expect(controller.createTransaction(input)).resolves.toEqual(
       expect.objectContaining({ uuid: 'transaction-id' }),
     );

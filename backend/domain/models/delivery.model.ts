@@ -11,6 +11,7 @@ export interface Delivery {
   additionalInfo: string;
   transactionId: string | null;
   transaction: TransactionReference | null;
+  fee?: number;
 }
 
 export type DeliveryData = Omit<

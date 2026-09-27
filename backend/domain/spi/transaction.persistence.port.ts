@@ -11,4 +11,5 @@ export interface ITransactionPersistencePort {
   getAll(): Promise<Transaction[]>;
   getById(uuid: string): Promise<Transaction | null>;
   create(input: CreateTransactionPersistenceInput): Promise<Transaction>;
+  updateStatus(uuid: string, statusId: number): Promise<void>;
 }

@@ -57,6 +57,7 @@ import { WompiController } from './infrastructure/in/controller/wompi.controller
 import { DatabaseModule } from './infrastructure/out/database/database.module';
 import { WompiModule } from './infrastructure/out/external/wompi/wompi.module';
 import { FakerProductFactory } from './infrastructure/out/faker/faker-product.factory';
+import { ICalculateFeeApi } from '../domain/api/calculate-fee.interface';
 
 const createProductApi = (
   productPersistence: IProductPersistencePort,
@@ -87,14 +88,20 @@ const createOrderItemApi = (
 const createTransactionApi = (
   transactionPersistence: ITransactionPersistencePort,
   productPersistence: IProductPersistencePort,
-  statusPersistence: ITransactionStatusPersistencePort,
-  wompiPayment: IWompiPaymentPort,
+  wompiUseCase: IWompiApi,
+  deliveryPersistence: IDeliveryPersistencePort,
+  orderItemPersistence: IOrderItemPersistencePort,
+  customerPersistence: ICustomerPersistencePort,
+  deliveryFee: ICalculateFeeApi,
 ): ITransactionApi =>
   new TransactionUseCase(
     transactionPersistence,
     productPersistence,
-    statusPersistence,
-    wompiPayment,
+    wompiUseCase,
+    deliveryPersistence,
+    orderItemPersistence,
+    customerPersistence,
+    deliveryFee,
   );
 
 const createTransactionStatusApi = (
@@ -157,24 +164,26 @@ const createWompiApi = (wompiPayment: IWompiPaymentPort): IWompiApi =>
       ],
     },
     {
+      provide: WOMPI_API,
+      useFactory: createWompiApi,
+      inject: [WOMPI_PAYMENT_PORT],
+    },
+    {
       provide: TRANSACTION_API,
       useFactory: createTransactionApi,
       inject: [
         TRANSACTION_PERSISTENCE_PORT,
         PRODUCT_PERSISTENCE_PORT,
-        TRANSACTION_STATUS_PERSISTENCE_PORT,
-        WOMPI_PAYMENT_PORT,
+        WOMPI_API,
+        DELIVERY_PERSISTENCE_PORT,
+        ORDER_ITEM_PERSISTENCE_PORT,
+        CUSTOMER_PERSISTENCE_PORT,
       ],
     },
     {
       provide: TRANSACTION_STATUS_API,
       useFactory: createTransactionStatusApi,
       inject: [TRANSACTION_STATUS_PERSISTENCE_PORT],
-    },
-    {
-      provide: WOMPI_API,
-      useFactory: createWompiApi,
-      inject: [WOMPI_PAYMENT_PORT],
     },
     {
       provide: APP_FILTER,

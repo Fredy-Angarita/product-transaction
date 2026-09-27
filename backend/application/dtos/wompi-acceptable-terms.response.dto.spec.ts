@@ -1,4 +1,4 @@
-import type { WompiAcceptableTerms } from '../../domain/models/wompi-acceptable-terms.model';
+import type { WompiAcceptableTerms } from '../../domain/models/wompi.model';
 import { WompiAcceptableTermsResponseDto } from './wompi-acceptable-terms.response.dto';
 
 const terms: WompiAcceptableTerms = {

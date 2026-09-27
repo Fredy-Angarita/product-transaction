@@ -89,6 +89,8 @@ describe('entity handlers', () => {
     await expect(
       handler.createTransaction({
         paymentReference: 'PAY-1',
+        acceptanceToken: 'acceptance-token-123',
+        acceptPersonalAuth: 'personal-auth-456',
         statusId: 1,
         customer: {
           name: 'Ana',

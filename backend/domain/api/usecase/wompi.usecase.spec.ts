@@ -1,5 +1,5 @@
 import type { CardModel } from '../../models/card.model';
-import type { WompiAcceptableTerms } from '../../models/wompi-acceptable-terms.model';
+import type { WompiAcceptableTerms } from '../../models/wompi.model';
 import type { IWompiPaymentPort } from '../../spi/wompi.payment.port';
 import { WompiUseCase } from './wompi.usecase';
 
@@ -30,6 +30,7 @@ describe('WompiUseCase', () => {
     const wompiPayment: jest.Mocked<IWompiPaymentPort> = {
       getAcceptableTerms,
       tokenizeCard: jest.fn(),
+      generateSign: jest.fn(),
     };
     const useCase = new WompiUseCase(wompiPayment);
 
@@ -42,6 +43,7 @@ describe('WompiUseCase', () => {
     const wompiPayment: jest.Mocked<IWompiPaymentPort> = {
       getAcceptableTerms: jest.fn(),
       tokenizeCard,
+      generateSign: jest.fn(),
     };
     const useCase = new WompiUseCase(wompiPayment);
 
@@ -54,6 +56,7 @@ describe('WompiUseCase', () => {
     const wompiPayment: jest.Mocked<IWompiPaymentPort> = {
       getAcceptableTerms: jest.fn().mockRejectedValue(error),
       tokenizeCard: jest.fn(),
+      generateSign: jest.fn(),
     };
     const useCase = new WompiUseCase(wompiPayment);
 

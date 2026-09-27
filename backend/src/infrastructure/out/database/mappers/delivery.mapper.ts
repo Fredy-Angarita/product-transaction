@@ -14,12 +14,12 @@ export class DeliveryMapper {
       subLocality: entity.subLocality,
       address: entity.address,
       postalCode: entity.postalCode,
+      fee: entity.fee,
       additionalInfo: entity.additionalInfo,
       transactionId: entity.transactionId ?? entity.transaction?.uuid ?? null,
       transaction: entity.transaction
         ? {
             uuid: entity.transaction.uuid,
-            paymentReference: entity.transaction.paymentReference,
             total: Number(entity.transaction.total),
           }
         : null,
@@ -33,6 +33,7 @@ export class DeliveryMapper {
     entity.locality = input.locality;
     entity.subLocality = input.subLocality;
     entity.address = input.address;
+    entity.fee = input.fee ?? 0;
     entity.postalCode = input.postalCode;
     entity.additionalInfo = input.additionalInfo;
     entity.transactionId = input.transactionId;

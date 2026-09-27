@@ -18,8 +18,10 @@ import { OrderItemEntity } from './order.item.entity';
 export class TransactionEntity {
   @PrimaryGeneratedColumn('uuid')
   declare uuid: string;
-  @Column({ name: 'payment_reference', type: 'varchar' })
-  declare paymentReference: string;
+  @Column({ name: 'acceptance_token', type: 'varchar' })
+  declare acceptanceToken: string;
+  @Column({ name: 'accept_personal_auth', type: 'varchar' })
+  declare acceptPersonalAuth: string;
   @Column({ name: 'status_id', type: 'int' })
   declare statusId: number;
   @ManyToOne(() => TransactionStatusEntity, (status) => status.transactions, {

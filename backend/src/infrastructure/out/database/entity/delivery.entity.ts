@@ -25,6 +25,12 @@ export class DeliveryEntity {
   declare postalCode: string;
   @Column({ type: 'text' })
   declare additionalInfo: string;
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+  })
+  declare fee: number;
   @Column({ name: 'transaction_id', type: 'uuid', nullable: true })
   declare transactionId: string | null;
   @OneToOne(() => TransactionEntity, (transaction) => transaction.delivery, {
