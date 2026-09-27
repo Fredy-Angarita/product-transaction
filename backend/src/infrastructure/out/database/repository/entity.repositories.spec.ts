@@ -348,7 +348,7 @@ describe('TransactionRepository', () => {
     expect(save).toHaveBeenCalledWith(
       expect.objectContaining({
         total: 39.98,
-        statusId: 1,
+        status: 'PENDING',
         customerId: 'customer-id',
       }),
     );

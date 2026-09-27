@@ -1,6 +1,7 @@
 import { EmptyTransactionItemsError } from '../../errors/empty-transaction-items.error';
 import { InsufficientStockError } from '../../errors/insufficient-stock.error';
 import { ResourceNotFoundError } from '../../errors/resource-not-found.error';
+import { TransactionStatusEnum } from '../../models/transaction-status.enum';
 
 import type {
   CreateTransactionInput,
@@ -40,21 +41,24 @@ export class TransactionUseCase implements ITransactionApi {
     const total = this.subTotal(items);
 
     const customer = await this.customerPersistence.create(input.customer);
+    console.log('SE CREO EL CUSTOMER', JSON.stringify(customer));
 
     const transaction = await this.transactionPersistence.create({
       total,
       acceptanceToken: input.acceptanceToken,
       acceptPersonalAuth: input.acceptPersonalAuth,
-      statusId: 1,
+      status: TransactionStatusEnum.PENDING,
       customerId: customer.id,
     });
+    console.log('SE CREO LA TRANSACCIÓN', JSON.stringify(transaction));
 
     const deliveryFee = this.deliveryUseCase.calculateFee();
-    await this.deliveryPersistence.create({
+    const delivery = await this.deliveryPersistence.create({
       ...input.delivery,
       fee: deliveryFee,
       transactionId: transaction.uuid,
     });
+    console.log('SE CREO EL DELIVERY', JSON.stringify(delivery));
 
     await this.orderItemPersistence.saveAll(
       items.map((item) => ({
@@ -76,15 +80,19 @@ export class TransactionUseCase implements ITransactionApi {
       },
       input.card,
     );
+    console.log(
+      'SE CREO LA TRANSACCIÓN EN WOMPI',
+      JSON.stringify(wompiTransaction),
+    );
 
     const result = await this.wompiUseCase.polling(wompiTransaction.data.id);
 
     if (!result) {
-      await this.transactionPersistence.updateStatus(transaction.uuid, 3);
-    }
-
-    if (!result) {
-      throw new Error('Polling failed: no response from Wompi');
+      await this.transactionPersistence.updateStatus(
+        transaction.uuid,
+        TransactionStatusEnum.DECLINED,
+      );
+      return transaction;
     }
 
     if (result.data.status === 'APPROVED') {
@@ -97,9 +105,15 @@ export class TransactionUseCase implements ITransactionApi {
           );
         }
       }
-      await this.transactionPersistence.updateStatus(transaction.uuid, 2);
-    } else if (result.data.status === 'DECLINED') {
-      await this.transactionPersistence.updateStatus(transaction.uuid, 3);
+      await this.transactionPersistence.updateStatus(
+        transaction.uuid,
+        TransactionStatusEnum.APPROVED,
+      );
+    } else if (result.data.status !== 'PENDING') {
+      await this.transactionPersistence.updateStatus(
+        transaction.uuid,
+        TransactionStatusEnum[result.data.status],
+      );
     }
 
     return transaction;

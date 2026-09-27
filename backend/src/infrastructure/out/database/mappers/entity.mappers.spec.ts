@@ -69,9 +69,8 @@ const transaction = {
   uuid: 'transaction-id',
   total: '39.98',
   customerId: customer.id,
-  statusId: status.id,
+  status: 'PENDING',
   customer: customerEntity,
-  status: statusEntity,
   delivery,
   items: [orderItem],
   createdAt: new Date('2026-09-25T10:00:00.000Z'),
@@ -192,9 +191,8 @@ describe('TransactionMapper', () => {
     expect(result.uuid).toBe('transaction-id');
     expect(result.total).toBe(39.98);
     expect(result.customerId).toBe('customer-id');
-    expect(result.statusId).toBe(1);
+    expect(result.status).toBe('PENDING');
     expect(result.customer).toEqual(customer);
-    expect(result.status).toEqual(status);
     expect(result.delivery?.id).toBe('delivery-id');
     expect(result.items[0]?.id).toBe('item-id');
     expect(result.items[0]?.price).toBe(19.99);
@@ -206,7 +204,6 @@ describe('TransactionMapper', () => {
     const entity = {
       ...transaction,
       customer: null,
-      status: null,
       delivery: null,
       items: undefined,
     } as unknown as TransactionEntity;
@@ -214,7 +211,7 @@ describe('TransactionMapper', () => {
     expect(TransactionMapper.toDomain(entity)).toEqual(
       expect.objectContaining({
         customer: null,
-        status: null,
+        status: 'PENDING',
         delivery: null,
         items: [],
       }),
@@ -226,7 +223,7 @@ describe('TransactionMapper', () => {
       acceptanceToken: 'acceptance-token-123',
       acceptPersonalAuth: 'personal-auth-456',
       total: 39.98,
-      statusId: 1,
+      status: 'PENDING',
       customerId: 'customer-id',
     };
 

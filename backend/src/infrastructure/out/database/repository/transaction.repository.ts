@@ -6,6 +6,7 @@ import type {
   CreateTransactionPersistenceInput,
   Transaction,
 } from '../../../../../domain/models/transaction.model';
+import { TransactionStatusEnum } from '../../../../../domain/models/transaction-status.enum';
 import type { ITransactionPersistencePort } from '../../../../../domain/spi/transaction.persistence.port';
 import { TransactionEntity } from '../entity/transaction.entity';
 import { TransactionMapper } from '../mappers/transaction.mapper';
@@ -21,7 +22,6 @@ export class TransactionRepository implements ITransactionPersistencePort {
     const entities = await this.transactionRepository.find({
       relations: {
         customer: true,
-        status: true,
         delivery: true,
         items: { product: true },
       },
@@ -34,7 +34,6 @@ export class TransactionRepository implements ITransactionPersistencePort {
       where: { uuid },
       relations: {
         customer: true,
-        status: true,
         delivery: true,
         items: { product: true },
       },
@@ -49,7 +48,10 @@ export class TransactionRepository implements ITransactionPersistencePort {
     return TransactionMapper.toDomain(saved);
   }
 
-  async updateStatus(uuid: string, statusId: number): Promise<void> {
-    await this.transactionRepository.update({ uuid }, { statusId });
+  async updateStatus(
+    uuid: string,
+    status: TransactionStatusEnum,
+  ): Promise<void> {
+    await this.transactionRepository.update({ uuid }, { status });
   }
 }

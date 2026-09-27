@@ -19,11 +19,7 @@ async function bootstrap() {
     .setDescription('API for managing products and transactions')
     .setVersion('1.0')
     .addTag('products')
-    .addTag('customers')
-    .addTag('deliveries')
-    .addTag('order-items')
     .addTag('transactions')
-    .addTag('transaction-statuses')
     .addTag('wompi')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);

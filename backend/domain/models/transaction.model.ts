@@ -2,7 +2,7 @@ import type { CardModel } from './card.model';
 import type { CreateCustomerInput, Customer } from './customer.model';
 import type { Delivery, DeliveryData } from './delivery.model';
 import type { OrderItem, TransactionItemInput } from './order-item.model';
-import type { TransactionStatus } from './transaction-status.model';
+import { TransactionStatusEnum } from './transaction-status.enum';
 
 export interface Transaction {
   uuid: string;
@@ -10,9 +10,8 @@ export interface Transaction {
   acceptanceToken: string;
   acceptPersonalAuth: string;
   customerId: string;
-  statusId: number;
+  status: TransactionStatusEnum;
   customer: Customer | null;
-  status: TransactionStatus | null;
   delivery: Delivery | null;
   items: OrderItem[];
   createdAt: string;
@@ -32,6 +31,6 @@ export interface CreateTransactionPersistenceInput {
   acceptanceToken: string;
   acceptPersonalAuth: string;
   total: number;
-  statusId: number;
+  status: TransactionStatusEnum;
   customerId: string;
 }

@@ -17,11 +17,13 @@ export class WompiUseCase implements IWompiApi {
 
   async polling(uuid: string): Promise<TransactionResponse | null> {
     let transaction: TransactionResponse | null = null;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       transaction = await this.wompiPayment.consultTractionState(uuid);
       if (transaction.data.status !== 'PENDING') {
+        console.log(` dentro ${i}${JSON.stringify(transaction)}`);
         return transaction;
       }
+      console.log(`afuera ${i}${JSON.stringify(transaction)}`);
       await sleep(1000);
     }
     return transaction;
@@ -46,6 +48,7 @@ export class WompiUseCase implements IWompiApi {
       },
     };
     const result = await this.wompiPayment.createWompiTransaction(payload);
+    console.log(result.data);
     return result;
   }
 

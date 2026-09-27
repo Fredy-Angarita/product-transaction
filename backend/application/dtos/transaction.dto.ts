@@ -123,14 +123,11 @@ export class TransactionResponseDto {
   @ApiProperty({ format: 'uuid' })
   customerId!: string;
 
-  @ApiProperty({ example: 1 })
-  statusId!: number;
+  @ApiProperty({ example: 'PENDING' })
+  status!: string;
 
   @ApiProperty({ type: CustomerResponseDto, nullable: true })
   customer!: CustomerResponseDto | null;
-
-  @ApiProperty({ type: TransactionStatusResponseDto, nullable: true })
-  status!: TransactionStatusResponseDto | null;
 
   @ApiProperty({ type: DeliveryResponseDto, nullable: true })
   delivery!: DeliveryResponseDto | null;
@@ -148,12 +145,9 @@ export class TransactionResponseDto {
     this.uuid = transaction.uuid;
     this.total = transaction.total;
     this.customerId = transaction.customerId;
-    this.statusId = transaction.statusId;
+    this.status = transaction.status;
     this.customer = transaction.customer
       ? CustomerResponseDto.fromDomain(transaction.customer)
-      : null;
-    this.status = transaction.status
-      ? TransactionStatusResponseDto.fromDomain(transaction.status)
       : null;
     this.delivery = transaction.delivery
       ? DeliveryResponseDto.fromDomain(transaction.delivery)

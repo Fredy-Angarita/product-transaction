@@ -361,7 +361,7 @@ describe('TransactionUseCase', () => {
       acceptanceToken: 'acceptance-token-123',
       acceptPersonalAuth: 'personal-auth-456',
       total: 99.95,
-      statusId: 1,
+      status: 'PENDING',
       customerId: customer.id,
     });
     expect(deliveryPersistence.create).toHaveBeenCalledWith({
