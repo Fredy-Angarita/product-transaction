@@ -19,6 +19,8 @@ async function bootstrap() {
     .setDescription('API for managing products and transactions')
     .setVersion('1.0')
     .addTag('products')
+    .addTag('transactions')
+    .addTag('wompi')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });

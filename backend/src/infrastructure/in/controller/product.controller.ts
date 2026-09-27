@@ -6,8 +6,15 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
-import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
+import { CreateProductDto } from '../../../../application/dtos/create-product.dto';
 import { ProductResponseDto } from '../../../../application/dtos/product.response.dto';
 import { SeedProductsDto } from '../../../../application/dtos/seed-products.dto';
 import { SeedProductsResponseDto } from '../../../../application/dtos/seed-products-response.dto';
@@ -28,6 +35,18 @@ export class ProductController {
   async getProducts(): Promise<ProductResponseDto[]> {
     const products = await this.productHandler.getProducts();
     return products.map((product) => ProductResponseDto.fromDomain(product));
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a product' })
+  @ApiBody({ type: CreateProductDto })
+  @ApiCreatedResponse({ type: ProductResponseDto })
+  async createProduct(
+    @Body() dto: CreateProductDto,
+  ): Promise<ProductResponseDto> {
+    const product = await this.productHandler.createProduct(dto);
+    return ProductResponseDto.fromDomain(product);
   }
 
   @Post('seed')
