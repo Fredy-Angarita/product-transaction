@@ -10,7 +10,6 @@ const STATUS_LABELS: Record<string, { label: string; tone: StatusTone }> = {
   PENDING: { label: 'Pago en proceso', tone: 'pending' },
 }
 
-/** Traduce el estado que devuelve el backend. Un estado desconocido no se oculta. */
 export function describeTransactionStatus(status: TransactionStatus | string): {
   label: string
   tone: StatusTone

@@ -106,11 +106,11 @@ export class TransactionUseCase implements ITransactionApi {
         transaction.uuid,
         TransactionStatusEnum.APPROVED,
       );
+      return { ...transaction, status: TransactionStatusEnum.APPROVED };
     } else if (result.data.status !== 'PENDING') {
-      await this.transactionPersistence.updateStatus(
-        transaction.uuid,
-        WOMPI_STATUS_MAP[result.data.status],
-      );
+      const status = WOMPI_STATUS_MAP[result.data.status];
+      await this.transactionPersistence.updateStatus(transaction.uuid, status);
+      return { ...transaction, status: status };
     }
 
     return transaction;

@@ -24,18 +24,8 @@ import {
   type CheckoutStepId,
 } from '../checkout.types'
 
-/** Pasado este tiempo esperando la respuesta del pago, se avisa en vez de dejar un spinner mudo. */
 const SLOW_SUBMIT_AFTER_MS = 4_000
 
-/**
- * Orquesta el paso a paso sobre el store de sesión: los datos (producto, cliente, envío)
- * viven en `useCheckoutStore` y sobreviven a una recarga; la tarjeta y el avance del flujo
- * son estado efímero y viven solo en memoria.
- *
- * La validación de cada paso NO vive aquí: la hacen los formularios de vee-validate dentro de
- * los componentes de paso, que exponen su `validate()`. Aquí solo se coordina la navegación,
- * el envío y los términos de Wompi.
- */
 export function useCheckout() {
   const store = useCheckoutStore()
   const { createTransaction } = useTransactions()
@@ -74,7 +64,6 @@ export function useCheckout() {
     }, SLOW_SUBMIT_AFTER_MS)
   })
 
-  // El composable también se puede usar fuera de un componente (pruebas), donde no hay scope.
   if (getCurrentScope()) onScopeDispose(() => clearTimeout(slowTimer))
 
   function setProducts(products: Product[]): void {
@@ -108,10 +97,6 @@ export function useCheckout() {
     })
   }
 
-  /**
-   * Pide los acuerdos firmados a Wompi. Se llama cada vez que se abre el modal porque los
-   * tokens son de vida corta: reutilizar los de una apertura anterior podría fallar al pagar.
-   */
   async function loadTerms(): Promise<void> {
     termsLoading.value = true
     termsError.value = ''
@@ -126,7 +111,6 @@ export function useCheckout() {
     }
   }
 
-  /** Cierra el modal: limpia lo efímero y arranca de nuevo en el resumen, sin borrar la sesión. */
   function reset(): void {
     Object.assign(card, createEmptyCard())
     Object.assign(consents, createEmptyConsents())
@@ -137,7 +121,6 @@ export function useCheckout() {
     receipt.value = null
   }
 
-  /** Compra terminada: la sesión guardada deja de tener sentido, pero el resultado se mantiene en pantalla. */
   function complete(): void {
     store.clear()
   }
@@ -146,7 +129,6 @@ export function useCheckout() {
     step.value = next
   }
 
-  /** El paso activo ya está validado por su formulario antes de llegar aquí. */
   function next(): void {
     const target = CHECKOUT_STEPS[stepIndex.value + 1]
     if (target) goTo(target.id)
@@ -164,7 +146,6 @@ export function useCheckout() {
     submitError.value = ''
 
     try {
-      // Reutiliza los términos ya cargados al abrir el modal; si no hay, los pide en el acto.
       const agreements = terms.value ?? (await fetchAcceptableTerms())
       const created = await createTransaction({
         acceptanceToken: agreements.presignedAcceptance.acceptanceToken,
@@ -183,9 +164,6 @@ export function useCheckout() {
           card_holder: card.cardHolder,
         },
       })
-
-      // Una 201 sin cuerpo llega como null: sin este chequeo el modal caería en la pantalla
-      // de error con el mensaje en blanco.
       if (!created?.uuid) {
         throw new Error('La API respondió sin los datos de la transacción')
       }
@@ -249,8 +227,6 @@ export function useCheckout() {
 }
 
 function describeError(cause: unknown): string {
-  // El pago se procesa en el servidor: un timeout NO significa que la compra haya fallado, y
-  // reenviarla a ciegas crearía una segunda transacción.
   if (cause instanceof ApiTimeoutError) {
     return 'La confirmación del pago tardó demasiado y cerramos la conexión. La transacción pudo quedar registrada: verifica antes de enviarla de nuevo.'
   }
@@ -258,7 +234,6 @@ function describeError(cause: unknown): string {
   if (cause instanceof ApiError) {
     const message = readMessage(cause.body) ?? cause.message
     if (!cause.status) return message
-    // Evita "Error 500 en /api/transactions (500)": el status ya suele estar en el mensaje.
     return message.includes(String(cause.status)) ? message : `${message} (${cause.status})`
   }
   return cause instanceof Error ? cause.message : 'No se pudo completar la compra'

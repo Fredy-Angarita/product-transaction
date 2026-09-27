@@ -46,7 +46,6 @@ export function useApi() {
       response = await fetch(url, {
         ...init,
         signal: controller.signal,
-        // El header solo se manda si hay body: en los GET evita el preflight de CORS
         headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
       })
     } catch (cause) {

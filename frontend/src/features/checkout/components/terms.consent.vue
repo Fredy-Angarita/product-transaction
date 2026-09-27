@@ -19,7 +19,6 @@ const personalData = defineModel<boolean>('personalData', { required: true })
 
 const emit = defineEmits<{ retry: [] }>()
 
-/** Los dos enlaces de la primera línea apuntan al acuerdo de términos de Wompi. */
 const termsUrl = computed(() => safeExternalUrl(props.terms?.presignedAcceptance.permalink))
 const personalDataUrl = computed(() =>
   safeExternalUrl(props.terms?.presignedPersonalDataAuth.permalink),

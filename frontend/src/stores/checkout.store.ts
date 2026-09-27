@@ -31,10 +31,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const subtotal = computed(() =>
     items.value.reduce((acc, item) => acc + item.product.price * item.quantity, 0),
   )
-  /**
-   * `null` mientras no se sabe: la tarifa la decide el backend al crear la transacción.
-   * No se inventa un número, y `total` es por tanto la suma de los productos.
-   */
+
   const shipping = ref<number | null>(null)
   const total = computed(() => subtotal.value + (shipping.value ?? 0))
 
