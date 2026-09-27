@@ -6,7 +6,8 @@ import type { CheckoutItem } from '../../checkout.types'
 defineProps<{
   items: CheckoutItem[]
   subtotal: number
-  shipping: number
+  /** `null` hasta que el backend informe la tarifa. */
+  shipping: number | null
   total: number
   restored?: boolean
 }>()

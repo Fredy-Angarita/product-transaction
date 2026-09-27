@@ -4,42 +4,76 @@ import { computed } from 'vue'
 import AlertMessage from '../../../../components/ui/alert.message.vue'
 import OrderSummary from '../order.summary.vue'
 import { maskCardNumber } from '../../card.format'
-import { SHIPPING_FLAT_RATE } from '../../checkout.constants'
 import { useCurrency } from '../../../../composables/useCurrency'
 import type { Transaction } from '../../../../composables/interfaces/entity/transaction.entity'
-import type { CheckoutReceipt } from '../../checkout.types'
+import type { CheckoutItem, CheckoutReceipt } from '../../checkout.types'
+import { describeTransactionStatus } from '../../transaction.status'
 
 const props = defineProps<{
   transaction: Transaction
+  /** Copia local: solo aporta el nombre y la imagen, que el backend no devuelve en items. */
   receipt: CheckoutReceipt | null
 }>()
 
 const { formatMoney } = useCurrency()
 
-const items = computed(() => props.receipt?.items ?? [])
-
-const subtotal = computed(() =>
-  items.value.reduce((acc, item) => acc + item.product.price * item.quantity, 0),
-)
-const shipping = computed(() => (items.value.length > 0 ? SHIPPING_FLAT_RATE : 0))
-const total = computed(() => props.transaction?.total ?? subtotal.value + shipping.value)
+const status = computed(() => describeTransactionStatus(props.transaction.status))
 
 const formattedDate = computed(() => {
-  if (!props.transaction) return ''
   const date = new Date(props.transaction.createdAt)
   return Number.isNaN(date.getTime())
     ? props.transaction.createdAt
     : new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
 })
 
+/**
+ * Los importes salen del servidor, no del carrito local: `item.price` es lo que se cobró.
+ * Del carrito solo se toma el nombre y la imagen, que `saveAll` no carga.
+ */
+const displayItems = computed<CheckoutItem[]>(() => {
+  const local = props.receipt?.items ?? []
+  const serverItems = props.transaction.items
+
+  if (serverItems.length === 0) return local
+
+  return serverItems.map((item) => {
+    const known = local.find((entry) => entry.product.id === item.productId)?.product
+    return {
+      product: {
+        id: item.productId,
+        name: item.product?.name ?? known?.name ?? 'Producto eliminado',
+        image: item.product?.image ?? known?.image ?? '',
+        price: item.price,
+        quantity: item.product?.quantity ?? 0,
+      },
+      quantity: item.quantity,
+    }
+  })
+})
+
+const subtotal = computed(() =>
+  displayItems.value.reduce((acc, item) => acc + item.product.price * item.quantity, 0),
+)
+
+/** La tarifa no viene en el DTO, pero se deduce del total menos los productos. */
+const shipping = computed(() => {
+  const fee = props.transaction.total - subtotal.value
+  return fee > 0 ? Math.round(fee) : null
+})
+
+const customer = computed(() => props.transaction.customer)
+const delivery = computed(() => props.transaction.delivery)
+const maskedCard = computed(() =>
+  props.receipt?.card.number ? maskCardNumber(props.receipt.card.number) : '—',
+)
+
 const deliveryLabel = computed(() => {
-  const delivery = props.receipt?.delivery
-  if (!delivery) return ''
+  if (!delivery.value) return '—'
   return [
-    `${delivery.address}, ${delivery.subLocality}, ${delivery.locality}`,
-    `${delivery.city} - ${delivery.country}`,
-    `CP ${delivery.postalCode}`,
-    delivery.additionalInfo,
+    `${delivery.value.address}, ${delivery.value.subLocality}, ${delivery.value.locality}`,
+    `${delivery.value.city} - ${delivery.value.country}`,
+    `CP ${delivery.value.postalCode}`,
+    delivery.value.additionalInfo,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -48,29 +82,25 @@ const deliveryLabel = computed(() => {
 
 <template>
   <div class="result-step">
-    <AlertMessage variant="success" title="¡Compra realizada con éxito!">
+    <AlertMessage :variant="status.tone === 'success' ? 'success' : 'error'" :title="status.label">
       <p>
-        Transacción <strong>{{ transaction.uuid }}</strong> · Estado {{ transaction.status }} ·
-        {{ formattedDate }}
+        Transacción <strong>{{ transaction.uuid }}</strong> · {{ formattedDate }}
       </p>
     </AlertMessage>
 
     <OrderSummary
-      v-if="items.length > 0"
       title="Detalle del pedido"
-      :items="items"
+      :items="displayItems"
       :subtotal="subtotal"
       :shipping="shipping"
-      :total="total"
+      :total="transaction.total"
     />
 
-    <dl v-if="receipt" class="result-step__data">
+    <dl class="result-step__data">
       <div class="result-step__row">
         <dt>Comprador</dt>
-        <dd>
-          {{ receipt.customer.name }} {{ receipt.customer.lastName }} ·
-          {{ receipt.customer.email }}
-        </dd>
+        <dd v-if="customer">{{ customer.name }} {{ customer.lastName }} · {{ customer.email }}</dd>
+        <dd v-else>—</dd>
       </div>
       <div class="result-step__row">
         <dt>Entrega en</dt>
@@ -78,7 +108,11 @@ const deliveryLabel = computed(() => {
       </div>
       <div class="result-step__row">
         <dt>Tarjeta</dt>
-        <dd>{{ maskCardNumber(receipt.card.number) }}</dd>
+        <dd>{{ maskedCard }}</dd>
+      </div>
+      <div class="result-step__row">
+        <dt>Estado</dt>
+        <dd>{{ transaction.status }}</dd>
       </div>
     </dl>
   </div>

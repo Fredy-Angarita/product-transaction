@@ -2,11 +2,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
 import type { Product } from '../composables/interfaces/entity/product.entity'
-import {
-  SHIPPING_FLAT_RATE,
-  SESSION_STORAGE_KEY,
-  SESSION_VERSION,
-} from '../features/checkout/checkout.constants'
+import { SESSION_STORAGE_KEY, SESSION_VERSION } from '../features/checkout/checkout.constants'
 import { parseSession } from '../features/checkout/checkout.schemas'
 import {
   createEmptyCustomer,
@@ -35,8 +31,12 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const subtotal = computed(() =>
     items.value.reduce((acc, item) => acc + item.product.price * item.quantity, 0),
   )
-  const shipping = computed(() => (items.value.length > 0 ? SHIPPING_FLAT_RATE : 0))
-  const total = computed(() => subtotal.value + shipping.value)
+  /**
+   * `null` mientras no se sabe: la tarifa la decide el backend al crear la transacción.
+   * No se inventa un número, y `total` es por tanto la suma de los productos.
+   */
+  const shipping = ref<number | null>(null)
+  const total = computed(() => subtotal.value + (shipping.value ?? 0))
 
   function hydrate(): void {
     const session = parseSession(readStorage())

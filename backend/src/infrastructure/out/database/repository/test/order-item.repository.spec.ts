@@ -80,9 +80,11 @@ describe('OrderItemRepository', () => {
       quantity: 2,
     };
 
-    await new OrderItemRepository(typeOrm).saveAll([input]);
+    const saved = await new OrderItemRepository(typeOrm).saveAll([input]);
 
     expect(save).toHaveBeenCalledWith([expect.objectContaining(input)]);
+    // Devuelve lo guardado para que el use case pueda armar el cuerpo de la transaccion.
+    expect(saved).toEqual([expect.objectContaining(input)]);
   });
 
   it('returns null when an order item does not exist', async () => {

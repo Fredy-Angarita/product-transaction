@@ -184,7 +184,11 @@ defineExpose({ validate })
     </AlertMessage>
 
     <p class="payment-step__amount">
-      Total a pagar: <strong>{{ formatMoney(total) }}</strong>
+      Subtotal de productos: <strong>{{ formatMoney(total) }}</strong>
+    </p>
+    <p class="payment-step__amount-note">
+      La tarifa de envío la calcula el servidor al confirmar el pago y se refleja en el total que se
+      cobra.
     </p>
   </form>
 </template>
@@ -207,5 +211,11 @@ defineExpose({ validate })
   margin: 0;
   font-size: 0.9rem;
   color: var(--color-text);
+}
+
+.payment-step__amount-note {
+  margin: -0.5rem 0 0;
+  font-size: 0.76rem;
+  color: var(--color-text-soft);
 }
 </style>

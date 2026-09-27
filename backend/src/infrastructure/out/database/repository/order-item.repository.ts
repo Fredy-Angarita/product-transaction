@@ -41,8 +41,10 @@ export class OrderItemRepository implements IOrderItemPersistencePort {
     return persisted ?? OrderItemMapper.toDomain(saved);
   }
 
-  async saveAll(items: CreateOrderItemInput[]): Promise<void> {
+  async saveAll(items: CreateOrderItemInput[]): Promise<OrderItem[]> {
     const entities = items.map((item) => OrderItemMapper.toEntity(item));
-    await this.orderItemRepository.save(entities);
+    const saved = await this.orderItemRepository.save(entities);
+
+    return saved.map((entity) => OrderItemMapper.toDomain(entity));
   }
 }

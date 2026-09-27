@@ -6,7 +6,8 @@ import type { CheckoutItem } from '../checkout.types'
 defineProps<{
   items: CheckoutItem[]
   subtotal: number
-  shipping: number
+  /** `null` cuando todavía no se conoce: la tarifa la calcula el backend al confirmar. */
+  shipping: number | null
   total: number
   title?: string
   editable?: boolean
@@ -72,7 +73,7 @@ function increase(item: CheckoutItem) {
         <dt>Subtotal</dt>
         <dd>{{ formatMoney(subtotal) }}</dd>
       </div>
-      <div class="order-summary__row">
+      <div v-if="shipping !== null" class="order-summary__row">
         <dt>Envío</dt>
         <dd>{{ formatMoney(shipping) }}</dd>
       </div>
