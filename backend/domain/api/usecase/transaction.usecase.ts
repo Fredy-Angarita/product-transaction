@@ -20,7 +20,6 @@ import type { IProductPersistencePort } from '../../spi/product.persistence.port
 import type { ITransactionPersistencePort } from '../../spi/transaction.persistence.port';
 import type { IWompiApi } from '../wompi.interface';
 import type { ITransactionApi } from '../transaction.interface';
-import { ICalculateFeeApi } from '../calculate-fee.interface';
 
 export class TransactionUseCase implements ITransactionApi {
   constructor(
@@ -30,7 +29,6 @@ export class TransactionUseCase implements ITransactionApi {
     private readonly deliveryPersistence: IDeliveryPersistencePort,
     private readonly orderItemPersistence: IOrderItemPersistencePort,
     private readonly customerPersistence: ICustomerPersistencePort,
-    private readonly deliveryUseCase: ICalculateFeeApi,
   ) {}
 
   getTransactions(): Promise<Transaction[]> {
@@ -44,9 +42,7 @@ export class TransactionUseCase implements ITransactionApi {
 
     const quantitiesByProduct = this.getTotalByProduct(input.items);
     const items = await this.mapItems(quantitiesByProduct);
-    // calculateFee() ya devuelve pesos, igual que subTotal(). Convertir a
-    // centavos aqui mezclaria unidades y el total no cuadra con el cobro.
-    const deliveryFee = this.deliveryUseCase.calculateFee();
+    const deliveryFee = input.delivery.fee;
     const total = this.subTotal(items) + deliveryFee;
 
     const customer = await this.customerPersistence.create(input.customer);

@@ -6,10 +6,11 @@ import type { CheckoutItem } from '../../checkout.types'
 defineProps<{
   items: CheckoutItem[]
   subtotal: number
-  /** `null` hasta que el backend informe la tarifa. */
   shipping: number | null
   total: number
   restored?: boolean
+  shippingLoading?: boolean
+  shippingError?: string
 }>()
 
 const emit = defineEmits<{
@@ -34,6 +35,8 @@ const emit = defineEmits<{
       :items="items"
       :subtotal="subtotal"
       :shipping="shipping"
+      :shipping-loading="shippingLoading"
+      :shipping-error="shippingError"
       :total="total"
       editable
       @update-quantity="(productId, quantity) => emit('update-quantity', productId, quantity)"

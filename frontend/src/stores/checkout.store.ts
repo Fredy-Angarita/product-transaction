@@ -35,6 +35,10 @@ export const useCheckoutStore = defineStore('checkout', () => {
   const shipping = ref<number | null>(null)
   const total = computed(() => subtotal.value + (shipping.value ?? 0))
 
+  function setShipping(fee: number): void {
+    shipping.value = Number.isFinite(fee) ? fee : 0
+  }
+
   function hydrate(): void {
     const session = parseSession(readStorage())
     if (!session) return
@@ -134,6 +138,7 @@ export const useCheckoutStore = defineStore('checkout', () => {
     subtotal,
     shipping,
     total,
+    setShipping,
     hydrate,
     persist,
     dismissRestoredNotice,

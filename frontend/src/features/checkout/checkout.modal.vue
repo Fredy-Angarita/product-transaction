@@ -36,6 +36,8 @@ const {
   terms,
   termsLoading,
   termsError,
+  feeLoading,
+  feeError,
   submitting,
   submitError,
   slowSubmit,
@@ -71,6 +73,7 @@ watch(
 
     checkout.setProducts(props.products)
     void checkout.loadTerms()
+    void checkout.loadDeliveryFee()
   },
 )
 
@@ -131,6 +134,8 @@ function onClose() {
       :items="items"
       :subtotal="subtotal"
       :shipping="shipping"
+      :shipping-loading="feeLoading"
+      :shipping-error="feeError"
       :total="total"
       :restored="restoredSession"
       @update-quantity="checkout.setQuantity"

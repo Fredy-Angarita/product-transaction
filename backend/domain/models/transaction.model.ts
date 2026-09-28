@@ -18,11 +18,13 @@ export interface Transaction {
   updatedAt: string;
 }
 
+export type CreateTransactionDelivery = DeliveryData & { fee: number };
+
 export interface CreateTransactionInput {
   acceptanceToken: string;
   acceptPersonalAuth: string;
   customer: CreateCustomerInput;
-  delivery: DeliveryData;
+  delivery: CreateTransactionDelivery;
   items: TransactionItemInput[];
   card: CardModel;
 }

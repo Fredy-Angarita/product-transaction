@@ -9,7 +9,6 @@ import type {
   CreateTransactionInput,
   Transaction,
 } from '../../../models/transaction.model';
-import type { ICalculateFeeApi } from '../../calculate-fee.interface';
 import type { ICustomerPersistencePort } from '../../../spi/customer.persistence.port';
 import type { IDeliveryPersistencePort } from '../../../spi/delivery.persistence.port';
 import type { IOrderItemPersistencePort } from '../../../spi/order-item.persistence.port';
@@ -88,6 +87,7 @@ const deliveryInput = {
   address: 'Calle 100 # 10-20',
   postalCode: '110111',
   additionalInfo: 'Apartamento 401',
+  fee: 1500,
 };
 
 const createTransactionInput = (
@@ -101,10 +101,6 @@ const createTransactionInput = (
   delivery: deliveryInput,
   items,
   card,
-});
-
-const createDeliveryFee = (): jest.Mocked<ICalculateFeeApi> => ({
-  calculateFee: jest.fn().mockReturnValue(1500),
 });
 
 const createCustomerPersistence =
@@ -152,7 +148,6 @@ describe('TransactionUseCase', () => {
       createDeliveryPersistence(),
       createOrderItemPersistence(),
       createCustomerPersistence(),
-      createDeliveryFee(),
     );
 
     await expect(useCase.getTransactions()).resolves.toEqual([transaction]);
@@ -165,7 +160,6 @@ describe('TransactionUseCase', () => {
     const deliveryPersistence = createDeliveryPersistence();
     const orderItemPersistence = createOrderItemPersistence();
     const customerPersistence = createCustomerPersistence();
-    const deliveryFee = createDeliveryFee();
     const useCase = new TransactionUseCase(
       transactionPersistence,
       productPersistence,
@@ -173,7 +167,6 @@ describe('TransactionUseCase', () => {
       deliveryPersistence,
       orderItemPersistence,
       customerPersistence,
-      deliveryFee,
     );
     const input = createTransactionInput([
       { productId: 'product-id', quantity: 2 },
@@ -183,9 +176,6 @@ describe('TransactionUseCase', () => {
     await expect(useCase.createTransaction(input)).resolves.toEqual({
       ...transaction,
       status: TransactionStatusEnum.APPROVED,
-      customer,
-      delivery,
-      items: [],
     });
     expect(productPersistence.getByIds).toHaveBeenCalledWith(['product-id']);
     expect(customerPersistence.create).toHaveBeenCalledWith(customerInput);
@@ -212,31 +202,39 @@ describe('TransactionUseCase', () => {
     ]);
   });
 
-  it('returns the whole body with the customer, delivery and order items', async () => {
+  it('charges the delivery fee quoted by the client', async () => {
+    const transactionPersistence = createTransactionPersistence();
+    const deliveryPersistence = createDeliveryPersistence();
+    const useCase = new TransactionUseCase(
+      transactionPersistence,
+      createProductPersistence(),
+      createWompiPayment(),
+      deliveryPersistence,
+      createOrderItemPersistence(),
+      createCustomerPersistence(),
+    );
+
+    await useCase.createTransaction({
+      ...createTransactionInput(),
+      delivery: { ...deliveryInput, fee: 20000 },
+    });
+
+    expect(transactionPersistence.create).toHaveBeenCalledWith(
+      expect.objectContaining({ total: 60000 }),
+    );
+    expect(deliveryPersistence.create).toHaveBeenCalledWith({
+      ...deliveryInput,
+      fee: 20000,
+      transactionId: transaction.uuid,
+    });
+  });
+
+  it('returns the saved transaction with the status coming from the payment', async () => {
     const transactionPersistence = createTransactionPersistence();
     const productPersistence = createProductPersistence();
     const deliveryPersistence = createDeliveryPersistence();
     const orderItemPersistence = createOrderItemPersistence();
     const customerPersistence = createCustomerPersistence();
-    const savedItems = [
-      {
-        id: 'item-1',
-        transactionId: 'transaction-id',
-        productId: 'product-id',
-        price: 20000,
-        quantity: 2,
-        product,
-      },
-      {
-        id: 'item-2',
-        transactionId: 'transaction-id',
-        productId: 'product-id',
-        price: 20000,
-        quantity: 3,
-        product,
-      },
-    ];
-    orderItemPersistence.saveAll.mockResolvedValue(savedItems);
     const useCase = new TransactionUseCase(
       transactionPersistence,
       productPersistence,
@@ -244,7 +242,6 @@ describe('TransactionUseCase', () => {
       deliveryPersistence,
       orderItemPersistence,
       customerPersistence,
-      createDeliveryFee(),
     );
 
     const result = await useCase.createTransaction(
@@ -254,11 +251,18 @@ describe('TransactionUseCase', () => {
       ]),
     );
 
-    expect(result.customer).toEqual(customer);
-    expect(result.delivery).toEqual(delivery);
-    expect(result.items).toEqual(savedItems);
-    // El estado sale del pago, no del objeto que devuelve create(), que sigue en PENDING.
-    expect(result.status).toBe(TransactionStatusEnum.APPROVED);
+    expect(result).toEqual({
+      ...transaction,
+      status: TransactionStatusEnum.APPROVED,
+    });
+    expect(orderItemPersistence.saveAll).toHaveBeenCalledWith([
+      {
+        transactionId: transaction.uuid,
+        productId: 'product-id',
+        price: 20000,
+        quantity: 5,
+      },
+    ]);
   });
 
   it('rejects a transaction without items', async () => {
@@ -269,7 +273,6 @@ describe('TransactionUseCase', () => {
       createDeliveryPersistence(),
       createOrderItemPersistence(),
       createCustomerPersistence(),
-      createDeliveryFee(),
     );
 
     await expect(
@@ -288,7 +291,6 @@ describe('TransactionUseCase', () => {
       createDeliveryPersistence(),
       createOrderItemPersistence(),
       createCustomerPersistence(),
-      createDeliveryFee(),
     );
 
     await expect(
@@ -307,7 +309,6 @@ describe('TransactionUseCase', () => {
       createDeliveryPersistence(),
       createOrderItemPersistence(),
       createCustomerPersistence(),
-      createDeliveryFee(),
     );
 
     await expect(
@@ -335,7 +336,6 @@ describe('TransactionUseCase', () => {
       createDeliveryPersistence(),
       createOrderItemPersistence(),
       createCustomerPersistence(),
-      createDeliveryFee(),
     );
 
     await expect(
@@ -362,7 +362,6 @@ describe('TransactionUseCase', () => {
       createDeliveryPersistence(),
       createOrderItemPersistence(),
       createCustomerPersistence(),
-      createDeliveryFee(),
     );
 
     await expect(
