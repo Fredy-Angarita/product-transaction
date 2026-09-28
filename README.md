@@ -142,3 +142,9 @@ frontend/
     ├── stores/                 # Pinia
     └── utils/
 ```
+
+---
+
+## Coverange Backend.
+
+## ![Coverage](docs/coverange.png)
