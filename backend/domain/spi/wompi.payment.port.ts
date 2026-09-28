@@ -1,0 +1,19 @@
+import type { CardModel } from '../models/card.model';
+import type {
+  NewTransaction,
+  NewTransactionRequest,
+  TransactionResponse,
+  WompiAcceptableTerms,
+} from '../models/wompi.model';
+
+export const WOMPI_PAYMENT_PORT = Symbol('WOMPI_PAYMENT_PORT');
+
+export interface IWompiPaymentPort {
+  getAcceptableTerms(): Promise<WompiAcceptableTerms>;
+  tokenizeCard(card: CardModel): Promise<string>;
+  generateSign(reference: string, amount: number): string;
+  createWompiTransaction(
+    transaction: NewTransactionRequest,
+  ): Promise<NewTransaction>;
+  consultTractionState(id: string): Promise<TransactionResponse>;
+}

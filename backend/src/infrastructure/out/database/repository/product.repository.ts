@@ -1,0 +1,42 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
+
+import type { Product } from '../../../../../domain/models/product.model';
+import type { IProductPersistencePort } from '../../../../../domain/spi/product.persistence.port';
+import { ProductEntity } from '../entity/product.entity';
+import { ProductMapper } from '../mappers/product.mapper';
+
+@Injectable()
+export class ProductRepository implements IProductPersistencePort {
+  constructor(
+    @InjectRepository(ProductEntity)
+    private readonly productRepository: Repository<ProductEntity>,
+  ) {}
+
+  async getAll(): Promise<Product[]> {
+    const entities = await this.productRepository.find();
+    return entities.map((entity) => ProductMapper.toDomain(entity));
+  }
+
+  async getById(id: string): Promise<Product | null> {
+    const entity = await this.productRepository.findOne({ where: { id } });
+    return entity ? ProductMapper.toDomain(entity) : null;
+  }
+
+  async getByIds(ids: string[]): Promise<Product[]> {
+    const entities = await this.productRepository.find({
+      where: { id: In(ids) },
+    });
+    return entities.map((entity) => ProductMapper.toDomain(entity));
+  }
+
+  async saveAll(products: Product[]): Promise<void> {
+    const entities = products.map((product) => ProductMapper.toEntity(product));
+    await this.productRepository.save(entities);
+  }
+
+  async updateStock(id: string, quantity: number): Promise<void> {
+    await this.productRepository.update({ id }, { quantity });
+  }
+}

@@ -1,47 +1,102 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import { onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+
+import ProductCard from './features/products/components/product.card.vue'
+import CheckoutModal from './features/checkout/checkout.modal.vue'
+import ResumeBanner from './features/checkout/components/resume.banner.vue'
+import { useProductsStore } from './stores/products.store'
+import { useCheckoutStore } from './stores/checkout.store'
+import type { Product } from './composables/interfaces/entity/product.entity'
+
+const store = useProductsStore()
+const checkout = useCheckoutStore()
+const { products, loading, error } = storeToRefs(store)
+const { items, isEmpty } = storeToRefs(checkout)
+
+const checkoutOpen = ref(false)
+const selected = ref<Product[]>([])
+
+onMounted(() => {
+  void store.loadProducts()
+})
+
+// La sesión guardada se revalida contra el catálogo: precios y stock pueden haber cambiado.
+watch(products, (list) => {
+  if (list.length > 0) checkout.syncWithCatalog(list)
+})
+
+function onBuy(product: Product) {
+  selected.value = [product]
+  checkoutOpen.value = true
+}
+
+function onResumeCheckout() {
+  selected.value = items.value.map((item) => item.product)
+  checkoutOpen.value = true
+}
+
+function onDiscardCheckout() {
+  checkout.clear()
+}
+
+function onCloseCheckout() {
+  checkoutOpen.value = false
+}
+
+function onCompleted() {
+  void store.loadProducts()
+}
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+  <main class="catalog">
+    <p v-if="loading" class="catalog-status">Cargando productos…</p>
+    <p v-else-if="error" class="catalog-status catalog-status--error">{{ error }}</p>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
+    <template v-else>
+      <ResumeBanner
+        v-if="!isEmpty"
+        :items="items"
+        @resume="onResumeCheckout"
+        @discard="onDiscardCheckout"
+      />
 
-  <main>
-    <TheWelcome />
+      <section class="product-grid">
+        <ProductCard v-for="product in products" :key="product.id" :card="product" @buy="onBuy" />
+      </section>
+    </template>
+
+    <CheckoutModal
+      :open="checkoutOpen"
+      :products="selected"
+      @close="onCloseCheckout"
+      @completed="onCompleted"
+    />
   </main>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
+<style lang="scss" scoped>
+.catalog {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 2rem);
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
+.catalog-status {
+  margin: 0;
+  color: var(--color-text);
+  text-align: center;
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.catalog-status--error {
+  color: #dc2626;
 }
 </style>
