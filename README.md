@@ -147,4 +147,4 @@ frontend/
 
 ## Coverange Backend.
 
-## ![Coverage](docs/coverange.png)
+## ![Coverage](docs/coverage.png)
