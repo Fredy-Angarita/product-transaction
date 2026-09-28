@@ -46,7 +46,6 @@ export class TransactionUseCase implements ITransactionApi {
     const total = this.subTotal(items) + deliveryFee;
 
     const customer = await this.customerPersistence.create(input.customer);
-    console.log('SE CREO EL CUSTOMER', JSON.stringify(customer));
 
     const transaction = await this.transactionPersistence.create({
       total,
@@ -55,14 +54,12 @@ export class TransactionUseCase implements ITransactionApi {
       status: TransactionStatusEnum.PENDING,
       customerId: customer.id,
     });
-    console.log('SE CREO LA TRANSACCIÓN', JSON.stringify(transaction));
 
-    const delivery = await this.deliveryPersistence.create({
+    await this.deliveryPersistence.create({
       ...input.delivery,
       fee: deliveryFee,
       transactionId: transaction.uuid,
     });
-    console.log('SE CREO EL DELIVERY', JSON.stringify(delivery));
 
     await this.orderItemPersistence.saveAll(
       items.map((item) => ({
@@ -130,11 +127,6 @@ export class TransactionUseCase implements ITransactionApi {
       const wompiTransaction = await this.wompiUseCase.createWompiTransaction(
         payload,
         input.card,
-      );
-      console.log('payload', JSON.stringify(payload));
-      console.log(
-        'SE CREO LA TRANSACCIÓN EN WOMPI',
-        JSON.stringify(wompiTransaction),
       );
 
       return await this.wompiUseCase.polling(wompiTransaction.data.id);

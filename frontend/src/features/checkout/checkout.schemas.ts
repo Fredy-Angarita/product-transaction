@@ -6,7 +6,7 @@ export const customerSchema = z.object({
   name: z.string().trim().min(1, 'Ingresa tu nombre'),
   lastName: z.string().trim().min(1, 'Ingresa tus apellidos'),
   identificationNumber: z.string().trim().min(3, 'Ingresa tu número de identificación'),
-  email: z.email('Ingresa un correo válido'),
+  email: z.string().toLowerCase().email('Ingresa un correo válido'),
 })
 
 export const deliverySchema = z.object({
