@@ -21,6 +21,7 @@ export interface TransactionDeliveryRequest {
   address: string
   postalCode: string
   additionalInfo: string
+  fee: number
 }
 
 export interface TransactionItemRequest {

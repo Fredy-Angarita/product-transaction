@@ -5,6 +5,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { ProductHandler } from '../application/handlers/product.handler';
 import { TransactionHandler } from '../application/handlers/transaction.handler';
 import { WompiHandler } from '../application/handlers/wompi.handler';
+import { DeliveryFeeHandler } from '../application/handlers/delivery-fee.handler';
 import { PRODUCT_API } from '../domain/api/product.interface';
 import type { IProductApi } from '../domain/api/product.interface';
 import { TRANSACTION_API } from '../domain/api/transaction.interface';
@@ -30,13 +31,13 @@ import { PRODUCT_SEED_FACTORY } from '../domain/spi/product.seed-factory.port';
 import type { IProductSeedFactory } from '../domain/spi/product.seed-factory.port';
 import { ProductController } from './infrastructure/in/controller/product.controller';
 import { DomainExceptionFilter } from './infrastructure/in/filters/domain-exception.filter';
+import { DeliveryFeeController } from './infrastructure/in/controller/delivery-fee.controller';
 import { TransactionController } from './infrastructure/in/controller/transaction.controller';
 import { WompiController } from './infrastructure/in/controller/wompi.controller';
 import { DatabaseModule } from './infrastructure/out/database/database.module';
 import { WompiModule } from './infrastructure/out/external/wompi/wompi.module';
 import { FakerProductFactory } from './infrastructure/out/faker/faker-product.factory';
 import { CALCULATE_FEE_API } from '../domain/api/calculate-fee.interface';
-import type { ICalculateFeeApi } from '../domain/api/calculate-fee.interface';
 import { CalculateFeeUseCase } from '../domain/api/usecase/calculate-fee.usecase';
 
 const createProductApi = (
@@ -51,7 +52,6 @@ const createTransactionApi = (
   deliveryPersistence: IDeliveryPersistencePort,
   orderItemPersistence: IOrderItemPersistencePort,
   customerPersistence: ICustomerPersistencePort,
-  deliveryFee: ICalculateFeeApi,
 ): ITransactionApi =>
   new TransactionUseCase(
     transactionPersistence,
@@ -60,7 +60,6 @@ const createTransactionApi = (
     deliveryPersistence,
     orderItemPersistence,
     customerPersistence,
-    deliveryFee,
   );
 
 const createWompiApi = (wompiPayment: IWompiPaymentPort): IWompiApi =>
@@ -72,12 +71,18 @@ const createWompiApi = (wompiPayment: IWompiPaymentPort): IWompiApi =>
     DatabaseModule,
     WompiModule,
   ],
-  controllers: [ProductController, TransactionController, WompiController],
+  controllers: [
+    ProductController,
+    TransactionController,
+    WompiController,
+    DeliveryFeeController,
+  ],
   providers: [
     FakerProductFactory,
     ProductHandler,
     TransactionHandler,
     WompiHandler,
+    DeliveryFeeHandler,
     {
       provide: PRODUCT_SEED_FACTORY,
       useExisting: FakerProductFactory,
@@ -102,7 +107,6 @@ const createWompiApi = (wompiPayment: IWompiPaymentPort): IWompiApi =>
         DELIVERY_PERSISTENCE_PORT,
         ORDER_ITEM_PERSISTENCE_PORT,
         CUSTOMER_PERSISTENCE_PORT,
-        CALCULATE_FEE_API,
       ],
     },
     {

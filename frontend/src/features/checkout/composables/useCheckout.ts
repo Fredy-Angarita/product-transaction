@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 
 import { ApiError, ApiTimeoutError } from '../../../composables/useApi'
 import { useCurrency } from '../../../composables/useCurrency'
+import { useDeliveryFee } from '../../../composables/useDeliveryFee'
 import { useTransactions } from '../../../composables/useTransactions'
 import { useWompi } from '../../../composables/useWompi'
 import type { Transaction } from '../../../composables/interfaces/entity/transaction.entity'
@@ -30,6 +31,7 @@ export function useCheckout() {
   const store = useCheckoutStore()
   const { createTransaction } = useTransactions()
   const { fetchAcceptableTerms } = useWompi()
+  const { fetchDeliveryFee } = useDeliveryFee()
   const { formatMoney } = useCurrency()
 
   const { items, customer, delivery, subtotal, shipping, total, restoredSession, restoredAt } =
@@ -41,6 +43,9 @@ export function useCheckout() {
   const terms = ref<WompiAcceptableTermsResponse | null>(null)
   const termsLoading = ref(false)
   const termsError = ref('')
+
+  const feeLoading = ref(false)
+  const feeError = ref('')
 
   const step = ref<CheckoutStepId>('summary')
   const submitting = ref(false)
@@ -111,6 +116,24 @@ export function useCheckout() {
     }
   }
 
+  /** Cotiza la tarifa una vez y la conserva: es el mismo valor que se cobra. */
+  async function loadDeliveryFee(): Promise<void> {
+    if (shipping.value !== null) return
+
+    feeLoading.value = true
+    feeError.value = ''
+
+    try {
+      const { fee } = await fetchDeliveryFee()
+      store.setShipping(fee)
+    } catch (cause) {
+      store.setShipping(0)
+      feeError.value = describeError(cause)
+    } finally {
+      feeLoading.value = false
+    }
+  }
+
   function reset(): void {
     Object.assign(card, createEmptyCard())
     Object.assign(consents, createEmptyConsents())
@@ -151,7 +174,7 @@ export function useCheckout() {
         acceptanceToken: agreements.presignedAcceptance.acceptanceToken,
         acceptPersonalAuth: agreements.presignedPersonalDataAuth.acceptanceToken,
         customer: { ...customer.value },
-        delivery: { ...delivery.value },
+        delivery: { ...delivery.value, fee: shipping.value ?? 0 },
         items: items.value.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
@@ -197,6 +220,8 @@ export function useCheckout() {
     terms,
     termsLoading,
     termsError,
+    feeLoading,
+    feeError,
     submitting,
     submitError,
     slowSubmit,
@@ -222,6 +247,7 @@ export function useCheckout() {
     back,
     submit,
     loadTerms,
+    loadDeliveryFee,
     dismissRestoredNotice: store.dismissRestoredNotice,
   }
 }

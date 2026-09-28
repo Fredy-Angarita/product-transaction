@@ -33,6 +33,7 @@ describe('entity handlers', () => {
           address: 'Calle 100 # 10-20',
           postalCode: '110111',
           additionalInfo: 'Apartamento 401',
+          fee: 1500,
         },
         items: [{ productId: 'product-id', quantity: 2 }],
         card: {

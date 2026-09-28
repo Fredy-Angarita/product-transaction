@@ -10,6 +10,8 @@ defineProps<{
   total: number
   title?: string
   editable?: boolean
+  shippingLoading?: boolean
+  shippingError?: string
 }>()
 
 const emit = defineEmits<{ 'update-quantity': [productId: string, quantity: number] }>()
@@ -72,7 +74,15 @@ function increase(item: CheckoutItem) {
         <dt>Subtotal</dt>
         <dd>{{ formatMoney(subtotal) }}</dd>
       </div>
-      <div v-if="shipping !== null" class="order-summary__row">
+      <div v-if="shippingLoading" class="order-summary__row">
+        <dt>Envío</dt>
+        <dd class="order-summary__pending">Calculando…</dd>
+      </div>
+      <div v-else-if="shippingError" class="order-summary__row">
+        <dt>Envío</dt>
+        <dd class="order-summary__error">{{ shippingError }}</dd>
+      </div>
+      <div v-else-if="shipping !== null" class="order-summary__row">
         <dt>Envío</dt>
         <dd>{{ formatMoney(shipping) }}</dd>
       </div>
@@ -189,6 +199,7 @@ function increase(item: CheckoutItem) {
 
 .order-summary__row {
   display: flex;
+  gap: 0.5rem;
   justify-content: space-between;
   font-size: 0.85rem;
   color: var(--color-text);
@@ -197,6 +208,19 @@ function increase(item: CheckoutItem) {
     margin: 0;
     font-weight: 600;
   }
+}
+
+.order-summary__pending {
+  color: var(--color-text-soft);
+  font-weight: 500;
+}
+
+.order-summary__error {
+  max-width: 60%;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #b91c1c;
+  text-align: right;
 }
 
 .order-summary__row--total {

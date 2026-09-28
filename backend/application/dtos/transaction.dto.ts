@@ -51,7 +51,13 @@ export class TransactionCardDto implements CardModel {
 
 export class TransactionDeliveryDto extends OmitType(CreateDeliveryDto, [
   'transactionId',
-] as const) {}
+] as const) {
+  @ApiProperty({ example: 15000, minimum: 0, maximum: 50000 })
+  @IsInt()
+  @Min(0)
+  @Max(50000)
+  fee!: number;
+}
 
 export class TransactionItemDto {
   @ApiProperty({ format: 'uuid' })
