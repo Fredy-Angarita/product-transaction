@@ -1,5 +1,15 @@
 # product-transaction
 
+---
+
+## Deploy
+
+#### Backend: [ir al back](https://product-transaction-production.up.railway.app/api/docs)
+
+#### Frontend: [ir al front](https://frontend-production-c665.up.railway.app/)
+
+---
+
 Monorepo con dos proyectos independientes (sin workspace config): un **backend** NestJS + TypeORM + PostgreSQL y un **frontend** Vue 3 + Vite + Pinia.
 
 - `backend/` — API de productos y transacciones con pago por tarjetas vía Wompi.
