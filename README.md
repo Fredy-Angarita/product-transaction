@@ -81,6 +81,10 @@ Valores de `transaction_status_enum` (`TransactionStatusEnum`): `PENDING`, `APPR
 
 ---
 
+## Modelo de datos
+
+## ![Modelo de datos](docs/challenge.png)
+
 ## Estructura de carpetas
 
 ### Backend
@@ -138,9 +142,3 @@ frontend/
     ├── stores/                 # Pinia
     └── utils/
 ```
-
----
-
-## Modelo de datos
-
-![Modelo de datos](docs/challenge.png)
