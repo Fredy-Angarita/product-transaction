@@ -11,5 +11,6 @@ export interface IOrderItemPersistencePort {
   getAll(): Promise<OrderItem[]>;
   getById(id: string): Promise<OrderItem | null>;
   create(input: CreateOrderItemInput): Promise<OrderItem>;
-  saveAll(items: CreateOrderItemInput[]): Promise<void>;
+  /** Devuelve los items ya guardados para poder armar el cuerpo de la transaccion. */
+  saveAll(items: CreateOrderItemInput[]): Promise<OrderItem[]>;
 }

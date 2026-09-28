@@ -39,7 +39,7 @@ const createOrderItemPersistence =
     getAll: jest.fn().mockResolvedValue([orderItem]),
     getById: jest.fn().mockResolvedValue(orderItem),
     create: jest.fn().mockResolvedValue(orderItem),
-    saveAll: jest.fn().mockResolvedValue(undefined),
+    saveAll: jest.fn().mockResolvedValue([orderItem]),
   });
 
 describe('OrderItemUseCase', () => {

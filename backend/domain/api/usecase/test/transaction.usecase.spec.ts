@@ -140,7 +140,7 @@ const createOrderItemPersistence =
     getAll: jest.fn().mockResolvedValue([orderItem]),
     getById: jest.fn().mockResolvedValue(orderItem),
     create: jest.fn().mockResolvedValue(orderItem),
-    saveAll: jest.fn().mockResolvedValue(undefined),
+    saveAll: jest.fn().mockResolvedValue([]),
   });
 
 describe('TransactionUseCase', () => {
@@ -180,9 +180,13 @@ describe('TransactionUseCase', () => {
       { productId: 'product-id', quantity: 3 },
     ]);
 
-    await expect(useCase.createTransaction(input)).resolves.toEqual(
-      transaction,
-    );
+    await expect(useCase.createTransaction(input)).resolves.toEqual({
+      ...transaction,
+      status: TransactionStatusEnum.APPROVED,
+      customer,
+      delivery,
+      items: [],
+    });
     expect(productPersistence.getByIds).toHaveBeenCalledWith(['product-id']);
     expect(customerPersistence.create).toHaveBeenCalledWith(customerInput);
     expect(transactionPersistence.create).toHaveBeenCalledWith({
@@ -206,6 +210,55 @@ describe('TransactionUseCase', () => {
         quantity: 5,
       },
     ]);
+  });
+
+  it('returns the whole body with the customer, delivery and order items', async () => {
+    const transactionPersistence = createTransactionPersistence();
+    const productPersistence = createProductPersistence();
+    const deliveryPersistence = createDeliveryPersistence();
+    const orderItemPersistence = createOrderItemPersistence();
+    const customerPersistence = createCustomerPersistence();
+    const savedItems = [
+      {
+        id: 'item-1',
+        transactionId: 'transaction-id',
+        productId: 'product-id',
+        price: 20000,
+        quantity: 2,
+        product,
+      },
+      {
+        id: 'item-2',
+        transactionId: 'transaction-id',
+        productId: 'product-id',
+        price: 20000,
+        quantity: 3,
+        product,
+      },
+    ];
+    orderItemPersistence.saveAll.mockResolvedValue(savedItems);
+    const useCase = new TransactionUseCase(
+      transactionPersistence,
+      productPersistence,
+      createWompiPayment(),
+      deliveryPersistence,
+      orderItemPersistence,
+      customerPersistence,
+      createDeliveryFee(),
+    );
+
+    const result = await useCase.createTransaction(
+      createTransactionInput([
+        { productId: 'product-id', quantity: 2 },
+        { productId: 'product-id', quantity: 3 },
+      ]),
+    );
+
+    expect(result.customer).toEqual(customer);
+    expect(result.delivery).toEqual(delivery);
+    expect(result.items).toEqual(savedItems);
+    // El estado sale del pago, no del objeto que devuelve create(), que sigue en PENDING.
+    expect(result.status).toBe(TransactionStatusEnum.APPROVED);
   });
 
   it('rejects a transaction without items', async () => {

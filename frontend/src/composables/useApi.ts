@@ -11,34 +11,46 @@ export class ApiError extends Error {
   }
 }
 
+export class ApiTimeoutError extends ApiError {
+  constructor(
+    path: string,
+    url: string,
+    readonly timeout: number,
+    options?: ErrorOptions,
+  ) {
+    super(`Tiempo de espera agotado (${timeout}ms) en ${path}`, 0, url, undefined, options)
+    this.name = 'ApiTimeoutError'
+  }
+}
+
 const BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
-const TIMEOUT = 10_000
+
+const DEFAULT_TIMEOUT = 10_000
+
+export interface RequestOptions {
+  timeout?: number
+}
 
 export function useApi() {
-  async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  async function request<T>(
+    path: string,
+    init: RequestInit = {},
+    timeout: number = DEFAULT_TIMEOUT,
+  ): Promise<T> {
     const url = `${BASE}${path}`
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), TIMEOUT)
+    const timer = setTimeout(() => controller.abort(), timeout)
 
     let response: Response
     try {
       response = await fetch(url, {
         ...init,
         signal: controller.signal,
-        // El header solo se manda si hay body: en los GET evita el preflight de CORS
         headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers },
       })
     } catch (cause) {
       if (cause instanceof Error && cause.name === 'AbortError') {
-        throw new ApiError(
-          `Tiempo de espera agotado (${TIMEOUT}ms) en ${path}`,
-          0,
-          url,
-          undefined,
-          {
-            cause,
-          },
-        )
+        throw new ApiTimeoutError(path, url, timeout, { cause })
       }
       throw new ApiError(`No se pudo conectar con ${url}`, 0, url, undefined, { cause })
     } finally {
@@ -56,13 +68,15 @@ export function useApi() {
   }
 
   return {
-    get: <T>(path: string): Promise<T> => request<T>(path),
-    post: <T>(path: string, body: unknown): Promise<T> =>
-      request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-    put: <T>(path: string, body: unknown): Promise<T> =>
-      request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
-    patch: <T>(path: string, body: unknown): Promise<T> =>
-      request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-    del: <T>(path: string): Promise<T> => request<T>(path, { method: 'DELETE' }),
+    get: <T>(path: string, options?: RequestOptions): Promise<T> =>
+      request<T>(path, {}, options?.timeout),
+    post: <T>(path: string, body: unknown, options?: RequestOptions): Promise<T> =>
+      request<T>(path, { method: 'POST', body: JSON.stringify(body) }, options?.timeout),
+    put: <T>(path: string, body: unknown, options?: RequestOptions): Promise<T> =>
+      request<T>(path, { method: 'PUT', body: JSON.stringify(body) }, options?.timeout),
+    patch: <T>(path: string, body: unknown, options?: RequestOptions): Promise<T> =>
+      request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }, options?.timeout),
+    del: <T>(path: string, options?: RequestOptions): Promise<T> =>
+      request<T>(path, { method: 'DELETE' }, options?.timeout),
   }
 }

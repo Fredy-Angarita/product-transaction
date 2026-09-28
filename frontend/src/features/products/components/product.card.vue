@@ -5,7 +5,7 @@ import type { Product } from '../../../composables/interfaces/entity/product.ent
 
 const props = defineProps<{ card: Product }>()
 
-const emit = defineEmits<{ add: [product: Product] }>()
+const emit = defineEmits<{ buy: [product: Product] }>()
 
 const currency = new Intl.NumberFormat('es-CO', {
   style: 'currency',
@@ -34,9 +34,9 @@ const stockLabel = computed(() => `Quedan ${props.card.quantity}`)
         class="product-button"
         type="button"
         :disabled="outOfStock"
-        @click="emit('add', card)"
+        @click="emit('buy', card)"
       >
-        Agregar
+        Comprar
       </button>
     </div>
   </article>
